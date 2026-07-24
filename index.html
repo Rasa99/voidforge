@@ -99,9 +99,19 @@
     align-items:flex-start; justify-content:center; background:
       radial-gradient(ellipse at 50% 0%, #24384f 0%, #16202b 70%);}
   #refImg{
-    position:absolute; pointer-events:none; image-rendering:pixelated;
-    object-fit:fill; transform-origin:center center; z-index:1;
+    position:absolute; pointer-events:none; image-rendering:pixelated; z-index:1;
   }
+  #refImg.editing{pointer-events:auto; cursor:move}
+  #refHandles{position:absolute; inset:0; pointer-events:none; z-index:2}
+  #refHandles[hidden]{display:none}
+  #refHandles i{
+    position:absolute; width:14px; height:14px; margin:-7px; border-radius:50%;
+    background:var(--acc); border:2px solid #fff; box-shadow:0 1px 4px #000a; pointer-events:auto;
+  }
+  #refHandles i[data-corner="tl"]{cursor:nwse-resize}
+  #refHandles i[data-corner="br"]{cursor:nwse-resize}
+  #refHandles i[data-corner="tr"]{cursor:nesw-resize}
+  #refHandles i[data-corner="bl"]{cursor:nesw-resize}
   #stage{
     display:grid; gap:0; background:#0f1620; padding:6px; border:1px solid #000;
     border-radius:4px; box-shadow:0 6px 24px #0008; touch-action:none; user-select:none;
@@ -151,24 +161,6 @@
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
   details summary{cursor:pointer; color:var(--dim); font-size:11px; margin-top:4px}
 
-  #traceModal{
-    position:fixed; inset:0; background:#000a; z-index:200;
-    display:flex; align-items:center; justify-content:center;
-  }
-  #traceModal[hidden]{display:none}
-  #traceBox{
-    width:min(420px,92vw); max-height:88vh; overflow:auto; background:var(--panel);
-    border:1px solid var(--line); border-radius:6px; padding:16px; box-shadow:0 12px 40px #000a;
-  }
-  #traceBox h2{font-size:14px; color:#fff}
-  #traceDrop{
-    border:2px dashed var(--line); border-radius:6px; min-height:120px; padding:10px;
-    display:flex; align-items:center; justify-content:center; text-align:center; cursor:pointer;
-    color:var(--dim); font-size:12px; transition:.12s;
-  }
-  #traceDrop.over{border-color:var(--acc); color:var(--acc)}
-  #traceDrop img{max-width:100%; max-height:220px; image-rendering:pixelated}
-
   /* ================= NeonUI theme — scoped, only active when html[data-theme="neon"] ================= */
   html[data-theme="neon"]{
     --bg:#05070d; --bg2:#03040a; --panel:rgba(13,18,32,.68); --panel2:rgba(22,30,52,.8);
@@ -178,6 +170,17 @@
     --glow-acc2:0 0 10px rgba(255,46,230,.5), 0 0 26px rgba(255,46,230,.2);
   }
   html[data-theme="neon"] body{background:#05070d; font-family:"Rajdhani","Segoe UI",Arial,sans-serif; position:relative}
+  /* Rajdhani is a tight display font — great for big punchy headers/buttons, hard to read as
+     small body copy. Descriptions/help text switch to a plain, well-hinted system font instead. */
+  html[data-theme="neon"] .stat, html[data-theme="neon"] header .hint, html[data-theme="neon"] label.sm,
+  html[data-theme="neon"] details summary{
+    font-family:"Segoe UI","Motiva Sans",Arial,sans-serif; letter-spacing:.1px; line-height:1.55;
+  }
+  html[data-theme="neon"] .stat{font-size:12px}
+  html[data-theme="neon"] header .hint{font-size:12.5px}
+  html[data-theme="neon"] label.sm{font-size:11.5px}
+  html[data-theme="neon"] button, html[data-theme="neon"] .btn{letter-spacing:.15px}
+  html[data-theme="neon"] #themePicker .sub{font-family:"Segoe UI","Motiva Sans",Arial,sans-serif; font-size:13px}
   html[data-theme="neon"] body::before{
     content:""; position:fixed; inset:-40px; z-index:-2; pointer-events:none;
     background-image:linear-gradient(rgba(0,240,255,.05) 1px, transparent 1px),
@@ -280,15 +283,8 @@
     background:rgba(7,10,19,.92); border:1px solid var(--acc); color:var(--acc); border-radius:6px;
     box-shadow:var(--glow-acc); backdrop-filter:blur(8px);
   }
-  html[data-theme="neon"] #traceModal{background:rgba(2,3,8,.78); backdrop-filter:blur(3px)}
-  html[data-theme="neon"] #traceBox{
-    background:rgba(12,16,29,.94); border:1px solid var(--line); border-radius:10px;
-    box-shadow:0 0 44px rgba(0,240,255,.16), 0 20px 60px #000a; backdrop-filter:blur(16px);
-  }
-  html[data-theme="neon"] #traceBox h2{font-family:"Orbitron",sans-serif; text-shadow:0 0 8px rgba(0,240,255,.5)}
-  html[data-theme="neon"] #traceDrop{border:2px dashed rgba(0,240,255,.32); border-radius:8px}
-  html[data-theme="neon"] #traceDrop.over{border-color:var(--acc); color:var(--acc); box-shadow:0 0 20px rgba(0,240,255,.28) inset}
   html[data-theme="neon"] footer a:hover{filter:brightness(1.2)}
+  html[data-theme="neon"] #refHandles i{background:var(--acc); box-shadow:var(--glow-acc)}
 
   /* ================= welcome theme picker ================= */
   #themePicker{
@@ -345,7 +341,7 @@
 
 <header>
   <h1>Void<span>Forge</span></h1>
-  <span class="badge">⚡ AI PIXEL FORGE // 2030</span>
+  <span class="badge">⚡ PIXEL FORGE</span>
   <span class="hint">Steam emoticon pixel art — paint with your emoticons → copy the code → paste in chat, comments or profile.
     Gaps are filled with the void <span class="kbd">U+2800</span></span>
   <span style="flex:1"></span>
@@ -471,28 +467,27 @@
         <button class="sm" data-shift="1,0">→</button>
         <button class="sm" id="crop">Crop to art</button>
         <span style="flex:1"></span>
-        <button class="sm p" id="traceBtn" data-neon="✨ AI Trace">Trace image</button>
+        <button class="sm p" id="refBtn" data-neon="🖼 Reference">Reference image</button>
         <button class="sm" id="importArt" data-neon="📥 Import code">Import code</button>
         <button class="sm" id="saveFile" data-neon="💾 Save">Save</button>
         <button class="sm" id="openFile" data-neon="📂 Open">Open</button>
       </div>
       <div class="row" id="refPanel" hidden>
         <label class="sm">Reference</label>
+        <button class="sm" id="refEdit" title="When on: drag the picture to move it, drag a corner to resize it">✥ Move / resize</button>
         <label class="sm">opacity</label>
-        <input type="range" id="refOpacity" min="0.1" max="1" step="0.05" value="0.45" style="width:70px">
-        <label class="sm">scale</label>
-        <input type="range" id="refScale" min="0.2" max="3" step="0.05" value="1" style="width:70px">
-        <label class="sm">rotate</label>
-        <input type="range" id="refRotate" min="-180" max="180" step="1" value="0" style="width:70px">
-        <button class="sm" data-refnudge="-1,0">←</button>
-        <button class="sm" data-refnudge="1,0">→</button>
-        <button class="sm" data-refnudge="0,-1">↑</button>
-        <button class="sm" data-refnudge="0,1">↓</button>
+        <input type="range" id="refOpacity" min="0.1" max="1" step="0.05" value="0.45" style="flex:1 1 80px;width:auto">
         <button class="sm" id="refReset">Reset</button>
         <button class="sm" id="refRemove">Remove</button>
       </div>
     </div>
-    <div id="stageWrap"><div id="stage" class="chk"></div><img id="refImg" hidden></div>
+    <div id="stageWrap">
+      <div id="stage" class="chk"></div>
+      <img id="refImg" hidden>
+      <div id="refHandles" hidden>
+        <i data-corner="tl"></i><i data-corner="tr"></i><i data-corner="bl"></i><i data-corner="br"></i>
+      </div>
+    </div>
     <div class="sec" style="border-bottom:none">
       <span class="stat">Left-drag paints · right-drag erases to void ·
         <span class="kbd">Alt</span>+click picks the emoticon under the cursor ·
@@ -584,34 +579,7 @@
 
 <div id="toast"></div>
 <input type="file" id="fileIn" accept=".json,.txt" hidden>
-
-<div id="traceModal" hidden>
-  <div id="traceBox">
-    <div class="row" style="justify-content:space-between">
-      <h2 style="margin:0">Trace an image with your palette</h2>
-      <button class="sm" id="traceClose">✕</button>
-    </div>
-    <p class="stat" style="margin:8px 0">
-      Two ways to use a picture: <b>Auto-trace</b> replaces every cell with the closest-colored
-      emoticon in your loaded palette (uses your current grid size — set it before tracing).
-      <b>Reference overlay</b> just lays the picture semi-transparently behind the grid so you can
-      trace it by eye, with position/scale/rotate controls — no color matching, so it always works.
-    </p>
-    <div id="traceDrop">
-      <span id="traceDropLabel">Drop an image here, or click to choose one</span>
-      <img id="tracePreview" hidden>
-    </div>
-    <input type="file" id="traceFile" accept="image/*" hidden>
-    <div class="row" style="margin-top:10px">
-      <label class="sm"><input type="checkbox" id="traceVoid" checked> treat transparent areas as void (PNGs only)</label>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <button class="p" id="traceGo" style="flex:1 1 auto" disabled>Auto-trace</button>
-      <button id="refGo" style="flex:1 1 auto" disabled>Use as reference</button>
-    </div>
-    <div class="stat" id="traceStatus" style="margin-top:8px"></div>
-  </div>
-</div>
+<input type="file" id="refFile" accept="image/*" hidden>
 
 <script>
 (()=>{
@@ -1138,7 +1106,7 @@ document.addEventListener("dragover",e=>e.preventDefault());
 document.addEventListener("drop",e=>{
   e.preventDefault(); const f=e.dataTransfer.files[0]; if(!f)return;
   if(/^image\//.test(f.type)){
-    const r=new FileReader(); r.onload=()=>{traceSetImg(r.result); openTrace();}; r.readAsDataURL(f);
+    const r=new FileReader(); r.onload=()=>refLoad(r.result); r.readAsDataURL(f);
     return;
   }
   const r=new FileReader(); r.onload=()=>{try{const d=JSON.parse(r.result);W=d.W;H=d.H;cells=d.cells;
@@ -1159,154 +1127,112 @@ document.addEventListener("paste",e=>{
   toast((inv!==null?"Imported ":"Added ")+list.length+" emoticon"+(list.length>1?"s":"")+" from clipboard");
 });
 
-/* ---------- image tracing ---------- */
-const emoColorCache=new Map();   // name -> {r,g,b} | null (unreadable — CORS or load failure)
-function avgColor(name){
-  if(emoColorCache.has(name)) return Promise.resolve(emoColorCache.get(name));
-  return new Promise(resolve=>{
-    let done=false, timer;
-    // Bounded: a hung network request (ad-blocker silently dropping it, a dead mirror that never
-    // fires load/error) must not stall the whole trace forever with zero feedback.
-    const finish=v=>{ if(done)return; done=true; clearTimeout(timer); emoColorCache.set(name,v); resolve(v); };
-    timer=setTimeout(()=>finish(null),5000);
-    const tryUrl=i=>{
-      if(done)return;
-      if(i>=CDN.length){finish(null);return;}
-      const img=new Image(); img.crossOrigin="anonymous";
-      img.onload=()=>{
-        if(done)return;
-        try{
-          const c=document.createElement("canvas"); c.width=c.height=12;
-          const ctx=c.getContext("2d"); ctx.drawImage(img,0,0,12,12);
-          const d=ctx.getImageData(0,0,12,12).data;
-          let r=0,g=0,b=0,n=0;
-          for(let p=0;p<d.length;p+=4){ if(d[p+3]>20){r+=d[p];g+=d[p+1];b+=d[p+2];n++;} }
-          finish(n?{r:r/n,g:g/n,b:b/n}:null);
-        }catch(_){ tryUrl(i+1); }   // canvas got tainted (no CORS on this mirror) — try the next one
-      };
-      img.onerror=()=>tryUrl(i+1);
-      img.src=CDN[i](name);
-    };
-    tryUrl(0);
-  });
-}
+/* ---------- reference-image overlay (trace by eye — no color matching, no distortion) ---------- */
+let refState=null;     // {x,y,w,h} in px, relative to #stageWrap; null = no reference loaded
+let refEditing=false;
+const REF_MIN=24;
 
-let traceImg=null;
-function traceSetImg(src){
-  traceImg=new Image();
-  traceImg.onload=()=>{
-    $("#tracePreview").src=src; $("#tracePreview").hidden=false;
-    $("#traceDropLabel").hidden=true;
-    $("#traceGo").disabled=false;
-    $("#refGo").disabled=false;
+function refLoad(src){
+  const im=new Image();
+  im.onload=()=>{
+    const stage=$("#stage"), wrap=$("#stageWrap");
+    const sb=stage.getBoundingClientRect(), wb=wrap.getBoundingClientRect();
+    const aspect=im.naturalWidth/im.naturalHeight;
+    // Fit inside the stage's current on-screen box without ever stretching the image.
+    let w=sb.width, h=w/aspect;
+    if(h>sb.height){ h=sb.height; w=h*aspect; }
+    const x=sb.left-wb.left+wrap.scrollLeft+(sb.width-w)/2;
+    const y=sb.top-wb.top+wrap.scrollTop+(sb.height-h)/2;
+    $("#refImg").src=src;
+    refState={x,y,w,h};
+    $("#refImg").hidden=false;
+    $("#refPanel").hidden=false;
+    $("#refOpacity").value=0.45;
+    refApply();
+    toast("Reference added — painting works normally on top of it");
   };
-  traceImg.onerror=()=>toast("Couldn't read that image");
-  traceImg.src=src;
+  im.onerror=()=>toast("Couldn't read that image");
+  im.src=src;
 }
-
-/* ---------- reference-image overlay (trace by eye — no color matching, always works) ---------- */
-let refState={x:0,y:0};
 function refApply(){
+  if(!refState)return;
   const img=$("#refImg");
+  img.style.left=refState.x+"px"; img.style.top=refState.y+"px";
+  img.style.width=refState.w+"px"; img.style.height=refState.h+"px";
   img.style.opacity=$("#refOpacity").value;
-  img.style.transform=`translate(-50%,-50%) translate(${refState.x}px,${refState.y}px) `+
-    `scale(${$("#refScale").value}) rotate(${$("#refRotate").value}deg)`;
+  if(refEditing){
+    const h=$("#refHandles");
+    h.querySelector('[data-corner="tl"]').style.cssText=`left:${refState.x}px;top:${refState.y}px`;
+    h.querySelector('[data-corner="tr"]').style.cssText=`left:${refState.x+refState.w}px;top:${refState.y}px`;
+    h.querySelector('[data-corner="bl"]').style.cssText=`left:${refState.x}px;top:${refState.y+refState.h}px`;
+    h.querySelector('[data-corner="br"]').style.cssText=`left:${refState.x+refState.w}px;top:${refState.y+refState.h}px`;
+  }
 }
-function refShow(src){
-  const stage=$("#stage"), wrap=$("#stageWrap"), img=$("#refImg");
-  const sb=stage.getBoundingClientRect(), wb=wrap.getBoundingClientRect();
-  img.src=src;
-  img.style.left=(sb.left-wb.left+wrap.scrollLeft+sb.width/2)+"px";
-  img.style.top=(sb.top-wb.top+wrap.scrollTop+sb.height/2)+"px";
-  img.style.width=sb.width+"px";
-  img.style.height=sb.height+"px";
-  img.hidden=false;
-  $("#refPanel").hidden=false;
-  refState={x:0,y:0};
-  $("#refOpacity").value=0.45; $("#refScale").value=1; $("#refRotate").value=0;
-  refApply();
+function refSetEditing(on){
+  refEditing=on;
+  $("#refImg").classList.toggle("editing",on);
+  $("#refHandles").hidden=!on;
+  $("#refEdit").classList.toggle("on",on);
+  if(on) refApply();
 }
 function refRemove(){
   $("#refImg").hidden=true; $("#refImg").removeAttribute("src");
-  $("#refPanel").hidden=true; refState={x:0,y:0};
+  $("#refPanel").hidden=true; refState=null; refSetEditing(false);
 }
+
 $("#refOpacity").oninput=refApply;
-$("#refScale").oninput=refApply;
-$("#refRotate").oninput=refApply;
-$("#refReset").onclick=()=>{refState={x:0,y:0}; $("#refOpacity").value=0.45; $("#refScale").value=1; $("#refRotate").value=0; refApply();};
+$("#refEdit").onclick=()=>refSetEditing(!refEditing);
+$("#refReset").onclick=()=>{
+  if(!refState)return;
+  const src=$("#refImg").src; refLoad(src);   // recompute the original fitted size/position
+};
 $("#refRemove").onclick=refRemove;
-$$("[data-refnudge]").forEach(b=>b.onclick=()=>{
-  const[dx,dy]=b.dataset.refnudge.split(",").map(Number);
-  refState.x+=dx*10; refState.y+=dy*10; refApply();
+
+// Drag the image body to move it (only active while editing — otherwise clicks pass through to painting).
+$("#refImg").addEventListener("pointerdown",e=>{
+  if(!refEditing)return;
+  e.preventDefault();
+  const startMouse={x:e.clientX,y:e.clientY}, start={...refState};
+  const move=ev=>{
+    refState.x=start.x+(ev.clientX-startMouse.x);
+    refState.y=start.y+(ev.clientY-startMouse.y);
+    refApply();
+  };
+  const up=()=>{window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up);};
+  window.addEventListener("pointermove",move);
+  window.addEventListener("pointerup",up);
 });
-$("#refGo").onclick=()=>{
-  if(!traceImg){toast("Choose an image first");return;}
-  refShow(traceImg.src);
-  closeTrace();
-  toast("Reference added — adjust it below the canvas, painting works normally on top");
-};
-function openTrace(){$("#traceModal").hidden=false;}
-function closeTrace(){$("#traceModal").hidden=true;}
 
-async function runTrace(){
-  if(!lib.length){toast("Load some emoticons first");return;}
-  if(!traceImg){toast("Choose an image first");return;}
-  const go=$("#traceGo"), status=$("#traceStatus");
-  go.disabled=true; status.textContent="Reading palette colors…";
-  try{
-    // Parallel + each individually time-boxed (see avgColor) — total wait can't exceed ~5s
-    // no matter how large the palette is, instead of silently hanging forever.
-    const results=await Promise.all(lib.map(name=>avgColor(name).then(c=>c?{name,...c}:null)));
-    const swatches=results.filter(Boolean);
-    if(!swatches.length){
-      toast("Couldn't read any emoticon colors — your browser or an extension may be blocking cross-site images");
-      return;
-    }
-    status.textContent=`Tracing with ${swatches.length}/${lib.length} usable colors…`;
-    const useVoid=$("#traceVoid").checked;
-    const c=document.createElement("canvas"); c.width=W; c.height=H;
-    const ctx=c.getContext("2d");
-    ctx.drawImage(traceImg,0,0,W,H);
-    const d=ctx.getImageData(0,0,W,H).data;
-    snap();
-    for(let y=0;y<H;y++) for(let x=0;x<W;x++){
-      const p=(y*W+x)*4, r=d[p],g=d[p+1],b=d[p+2],a=d[p+3];
-      if(useVoid&&a<40){ cells[y*W+x]=null; continue; }
-      let best=null,bd=Infinity;
-      for(const s of swatches){
-        const dr=r-s.r,dg=g-s.g,db=b-s.b, dist=dr*dr+dg*dg+db*db;
-        if(dist<bd){bd=dist;best=s.name;}
-      }
-      cells[y*W+x]=best;
-    }
-    redrawAll(); update();
-    closeTrace();
-    toast(`Traced ${W}×${H} using ${swatches.length} emoticons`);
-  }catch(err){
-    // Any unexpected failure (huge image, odd format, tainted canvas) surfaces here instead of
-    // leaving the button stuck disabled with no feedback, which is what "just doesn't work" was.
-    toast("Tracing failed: "+(err&&err.message?err.message:"unknown error"));
-  }finally{
-    status.textContent=""; go.disabled=false;
-  }
-}
+// Drag a corner handle to resize, aspect ratio always locked, anchored at the opposite corner.
+$$("#refHandles i").forEach(handle=>{
+  handle.addEventListener("pointerdown",e=>{
+    e.preventDefault(); e.stopPropagation();
+    const corner=handle.dataset.corner;
+    const isRight=corner==="tr"||corner==="br", isBottom=corner==="bl"||corner==="br";
+    const start={...refState}, aspect=start.w/start.h;
+    const wrap=$("#stageWrap"), wb=wrap.getBoundingClientRect();
+    const move=ev=>{
+      const mx=ev.clientX-wb.left+wrap.scrollLeft, my=ev.clientY-wb.top+wrap.scrollTop;
+      let w = isRight ? (mx-start.x) : ((start.x+start.w)-mx);
+      w=Math.max(REF_MIN,w);
+      const h=w/aspect;
+      refState.w=w; refState.h=h;
+      refState.x = isRight ? start.x : (start.x+start.w)-w;
+      refState.y = isBottom ? start.y : (start.y+start.h)-h;
+      refApply();
+    };
+    const up=()=>{window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up);};
+    window.addEventListener("pointermove",move);
+    window.addEventListener("pointerup",up);
+  });
+});
 
-$("#traceBtn").onclick=openTrace;
-$("#traceClose").onclick=closeTrace;
-$("#traceModal").addEventListener("click",e=>{if(e.target.id==="traceModal")closeTrace();});
-$("#traceDrop").onclick=()=>$("#traceFile").click();
-$("#traceFile").onchange=e=>{
+$("#refBtn").onclick=()=>$("#refFile").click();
+$("#refFile").onchange=e=>{
   const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>traceSetImg(r.result); r.readAsDataURL(f);
+  const r=new FileReader(); r.onload=()=>refLoad(r.result); r.readAsDataURL(f);
+  e.target.value="";
 };
-$("#traceDrop").addEventListener("dragover",e=>{e.preventDefault(); e.stopPropagation(); $("#traceDrop").classList.add("over");});
-$("#traceDrop").addEventListener("dragleave",()=>$("#traceDrop").classList.remove("over"));
-$("#traceDrop").addEventListener("drop",e=>{
-  e.preventDefault(); e.stopPropagation(); $("#traceDrop").classList.remove("over");
-  const f=e.dataTransfer.files[0]; if(!f||!/^image\//.test(f.type))return;
-  const r=new FileReader(); r.onload=()=>traceSetImg(r.result); r.readAsDataURL(f);
-});
-$("#traceGo").onclick=runTrace;
 
 /* ---------- resizable right panel ---------- */
 function initDragHandle(){
