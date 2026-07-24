@@ -35,8 +35,10 @@
 
   .col{display:flex; flex-direction:column; min-height:0}
   #left{width:290px; flex:0 0 auto; background:var(--panel); border-right:1px solid #000}
-  #right{width:380px; flex:0 0 auto; background:var(--panel); border-left:1px solid #000}
+  #right{width:440px; flex:0 0 auto; background:var(--panel); border-left:1px solid #000}
   #center{flex:1 1 auto; min-width:0}
+  #dragHandle{width:6px; flex:0 0 auto; cursor:col-resize; background:var(--line)}
+  #dragHandle:hover, #dragHandle.active{background:var(--acc)}
 
   .sec{border-bottom:1px solid var(--line); padding:9px 10px}
   .sec.grow{flex:1 1 auto; min-height:0; display:flex; flex-direction:column}
@@ -199,6 +201,7 @@
         <button data-tool="erase" class="tool">Void <span class="kbd">E</span></button>
         <button data-tool="fill"  class="tool">Fill <span class="kbd">G</span></button>
         <button data-tool="line"  class="tool">Line <span class="kbd">L</span></button>
+        <button data-tool="circle" class="tool">Circle <span class="kbd">C</span></button>
         <button data-tool="rect"  class="tool">Rect <span class="kbd">R</span></button>
         <button data-tool="pick"  class="tool">Pick <span class="kbd">I</span></button>
         <span style="flex:1"></span>
@@ -241,6 +244,8 @@
     </div>
   </div>
 
+  <div id="dragHandle" title="Drag to resize"></div>
+
   <!-- ================= RIGHT ================= -->
   <div id="right" class="col">
     <div class="sec">
@@ -279,8 +284,8 @@
       </div>
       <div class="stat" id="gapHelp" style="margin-top:6px">
         One <b>⠀</b> is only ~⅓ of an emoticon wide, so the useful range is <b>1.5–3</b> voids
-        per cell. <b>Auto-fit</b> measures the exact ratio for the emoticon size set below the
-        preview. <b>Ruler</b> copies a test message — paste it in Steam and read the number off
+        per cell. <b>Auto-fit</b> measures the exact ratio for Steam's default 26px emoticon size.
+        <b>Ruler</b> copies a test message — paste it in Steam and read the number off
         it if auto-fit is slightly out. The fractional value is spread across each row (2.5 →
         2,3,2,3…) so long rows don't drift.
       </div>
@@ -290,13 +295,6 @@
       <div class="tabs">
         <button id="tabCode">Code</button>
         <button id="tabPrev" class="on">Steam preview</button>
-      </div>
-      <div class="row" id="prevCtl" style="margin-bottom:6px">
-        <label class="sm">emoticon px</label>
-        <input type="range" id="prevSize" min="14" max="40" value="26" style="flex:1 1 auto;width:auto">
-        <span class="stat" id="prevSizeV">26</span>
-        <label class="sm">font px</label>
-        <input type="number" id="prevFont" min="9" max="24" value="15">
       </div>
       <div id="out" hidden></div>
       <div id="preview"></div>
@@ -339,10 +337,8 @@ const CDN=[
   n=>`https://community.cloudflare.steamstatic.com/economy/emoticon/${n}`,
   n=>`https://steamcommunity-a.akamaihd.net/economy/emoticon/${n}`
 ];
-const DEFAULTS=("steamhappy steamsad steammocking steamfacepalm steamsalty steambored steamthumbsup "+
- "steamthumbsdown steamsalient steamdeadpan steamthis steampeeking steamhappysign steamboxed "+
- "luv health physgun sacrifice bomb gunsmiley spycon medicon heavycon scoutcon p2cube p2turret "+
- "csgostar csgoct csgot csgoa csgohelmet cozyspaceengineerscat").split(/\s+/);
+const DEFAULTS=["SNF3","SNF5","SNF2","SNF1","SNF4"];
+const PREV_SIZE=26, PREV_FONT=15;   // fixed Steam-preview render size (was a user control, removed — never did anything useful)
 
 /* ---------- state ---------- */
 let W=16,H=10, cells=new Array(W*H).fill(null);
@@ -492,8 +488,20 @@ function drawCell(i){
 }
 function redrawAll(){for(let i=0;i<W*H;i++) drawCell(i);}
 
+function contentExtent(){
+  let maxx=-1,maxy=-1;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++) if(cells[y*W+x]!==null){if(x>maxx)maxx=x; if(y>maxy)maxy=y;}
+  return {w:maxx+1,h:maxy+1};   // 0 if the grid is empty
+}
 function resize(nw,nh,keep=true){
   nw=Math.max(1,Math.min(60,nw|0)); nh=Math.max(1,Math.min(60,nh|0));
+  if(keep){
+    const ext=contentExtent();
+    if(nw<ext.w||nh<ext.h){
+      nw=Math.max(nw,ext.w); nh=Math.max(nh,ext.h);
+      toast(`Can't shrink past your art — clamped to ${nw}×${nh}`);
+    }
+  }
   const nc=new Array(nw*nh).fill(null);
   if(keep) for(let y=0;y<Math.min(H,nh);y++) for(let x=0;x<Math.min(W,nw);x++) nc[y*nw+x]=cells[y*W+x];
   W=nw;H=nh;cells=nc; $("#gw").value=W; $("#gh").value=H;
@@ -522,7 +530,13 @@ function setPreview(list,v){
   list.forEach(i=>{if(i<0||i>=W*H)return; preview.set(i,cells[i]);
     const d=stage.children[i]; d.className="cell pv"+(v===null?" empty":""); paintNode(d,v);});
 }
-function commitPreview(v){const l=[...preview.keys()]; preview.clear(); l.forEach(i=>put(i,v)); }
+function commitPreview(v){
+  // Can't reuse put() here — its cells[i]===v short-circuit would skip the redraw needed
+  // to clear a cell's leftover ".pv" preview class when the value doesn't actually change
+  // (e.g. erasing over cells that were already void). Always redraw every previewed cell.
+  const l=[...preview.keys()]; preview.clear();
+  l.forEach(i=>{cells[i]=v; drawCell(i);});
+}
 
 function lineIdx(a,b){
   let x0=a%W,y0=(a/W)|0,x1=b%W,y1=(b/W)|0, out=[];
@@ -536,6 +550,19 @@ function rectIdx(a,b){
   const x0=Math.min(a%W,b%W),x1=Math.max(a%W,b%W),y0=Math.min((a/W)|0,(b/W)|0),y1=Math.max((a/W)|0,(b/W)|0);
   const out=[]; for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) out.push(y*W+x); return out;
 }
+function circleIdx(a,b){
+  const x0=Math.min(a%W,b%W),x1=Math.max(a%W,b%W),y0=Math.min((a/W)|0,(b/W)|0),y1=Math.max((a/W)|0,(b/W)|0);
+  const cx=(x0+x1)/2, cy=(y0+y1)/2;
+  const rx=Math.max((x1-x0)/2,0.5), ry=Math.max((y1-y0)/2,0.5);
+  const out=[];
+  for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){
+    const dx=(x-cx)/rx, dy=(y-cy)/ry;
+    if(dx*dx+dy*dy<=1.05) out.push(y*W+x);
+  }
+  return out.length?out:[a];
+}
+const SHAPE_TOOLS=new Set(["line","rect","circle"]);
+function shapeIdx(t,a,b){return t==="line"?lineIdx(a,b):t==="rect"?rectIdx(a,b):circleIdx(a,b);}
 function flood(i,v){
   const t=cells[i]; if(t===v)return;
   const st=[i], seen=new Set([i]);
@@ -549,7 +576,10 @@ function flood(i,v){
   }
 }
 
+let drawTool=null;  // tool captured at drag-start, so a mid-drag tool switch can never leave a stuck preview
+
 stage.addEventListener("contextmenu",e=>e.preventDefault());
+document.addEventListener("contextmenu",e=>{if(painting)e.preventDefault();});
 stage.addEventListener("pointerdown",e=>{
   const i=idxAt(e.clientX,e.clientY); if(i===null)return;
   e.preventDefault();
@@ -557,21 +587,28 @@ stage.addEventListener("pointerdown",e=>{
   pointerErase = e.button===2 || tool==="erase";
   snap();
   if(tool==="fill"){flood(i,value(pointerErase)); update(); return;}
-  if(tool==="line"||tool==="rect"){startIdx=i; painting=true; setPreview([i],value(pointerErase)); return;}
-  painting=true; put(i,value(pointerErase)); update();
+  if(SHAPE_TOOLS.has(tool)){
+    drawTool=tool; startIdx=i; painting=true; setPreview([i],value(pointerErase));
+    try{stage.setPointerCapture(e.pointerId);}catch(_){}
+    return;
+  }
+  drawTool=null; painting=true; put(i,value(pointerErase)); update();
 });
 window.addEventListener("pointermove",e=>{
   if(!painting)return;
+  if(e.buttons===0){finishPaint(); return;}   // self-heal: a pointerup we somehow missed
   const i=idxAt(e.clientX,e.clientY); if(i===null)return;
-  if(tool==="line") setPreview(lineIdx(startIdx,i),value(pointerErase));
-  else if(tool==="rect") setPreview(rectIdx(startIdx,i),value(pointerErase));
+  if(drawTool) setPreview(shapeIdx(drawTool,startIdx,i),value(pointerErase));
   else {put(i,value(pointerErase)); update();}
 });
-window.addEventListener("pointerup",()=>{
+function finishPaint(){
   if(!painting)return; painting=false;
-  if(tool==="line"||tool==="rect"){commitPreview(value(pointerErase)); update();}
-  startIdx=null;
-});
+  if(drawTool) commitPreview(value(pointerErase)); else clearPreview();
+  drawTool=null; startIdx=null; update();
+}
+window.addEventListener("pointerup",finishPaint);
+window.addEventListener("pointercancel",finishPaint);
+window.addEventListener("blur",finishPaint);
 
 /* ---------- output ---------- */
 function gapEmoActive(){return gapMode==="emo"&&gapEmo;}
@@ -618,7 +655,7 @@ function update(){
    voids as actual text in a text-sized font — so misalignment shows up here first. */
 function renderPreview(code){
   const p=$("#preview"); p.innerHTML="";
-  const size=+$("#prevSize").value, font=+$("#prevFont").value;
+  const size=PREV_SIZE, font=PREV_FONT;
   p.style.fontSize=font+"px";
   code.split("\n").forEach(line=>{
     const row=document.createElement("div");
@@ -713,14 +750,13 @@ $("#profIn").onkeydown=e=>{if(e.key==="Enter")$("#openInv").click();};
 $("#libDefault").onclick=()=>{setLib(DEFAULTS,true); toast("Common emoticons added");};
 $("#libClear").onclick=()=>{lib=[];sel=null;localStorage.removeItem("sea_lib");renderPal();};
 $("#trimRight").onchange=$("#padEmpty").onchange=update;
-$("#tabCode").onclick=()=>{$("#out").hidden=false;$("#preview").hidden=true;$("#prevCtl").hidden=true;
+$("#tabCode").onclick=()=>{$("#out").hidden=false;$("#preview").hidden=true;
   $("#tabCode").classList.add("on");$("#tabPrev").classList.remove("on");};
-$("#tabPrev").onclick=()=>{$("#out").hidden=true;$("#preview").hidden=false;$("#prevCtl").hidden=false;
+$("#tabPrev").onclick=()=>{$("#out").hidden=true;$("#preview").hidden=false;
   $("#tabPrev").classList.add("on");$("#tabCode").classList.remove("on");renderPreview(buildCode());};
 
 /* ---- gap width ---- */
-function saveGap(){localStorage.setItem("sea_gap",JSON.stringify(
-  {gapMode,gapEmo,n:$("#voidN").value,ps:$("#prevSize").value,pf:$("#prevFont").value}));}
+function saveGap(){localStorage.setItem("sea_gap",JSON.stringify({gapMode,gapEmo,n:$("#voidN").value}));}
 function syncGapUI(){
   $("#gapMode").value=gapMode;
   $("#voidRow").hidden=gapMode!=="void";
@@ -736,14 +772,12 @@ $("#setGapEmo").onclick=()=>{
   if(sel===null){toast("Select an emoticon in the palette first");return;}
   gapEmo=sel; syncGapUI(); toast("Gap emoticon = :"+sel+":");
 };
-$("#prevSize").oninput=e=>{$("#prevSizeV").textContent=e.target.value; saveGap(); renderPreview(buildCode());};
-$("#prevFont").oninput=()=>{saveGap(); renderPreview(buildCode());};
 /* Measure a void vs an emoticon in the live preview font and set voids/cell to match.
    Steam's client is Chromium with the same Segoe/Motiva stack, so this transfers well. */
 $("#autofit").onclick=()=>{
   const e=sel||gapEmo||lib[0];
   if(!e){toast("Load some emoticons first");return;}
-  const px=+$("#prevSize").value, font=+$("#prevFont").value;
+  const px=PREV_SIZE, font=PREV_FONT;
   const m=document.createElement("span");
   m.style.cssText=`position:absolute;visibility:hidden;white-space:pre;font-size:${font}px;`+
     `font-family:"Motiva Sans","Segoe UI Symbol","Segoe UI",Arial,sans-serif`;
@@ -805,7 +839,7 @@ document.addEventListener("keydown",e=>{
   if(e.ctrlKey&&k==="z"){e.preventDefault();undo();return;}
   if(e.ctrlKey&&(k==="y"||(k==="z"&&e.shiftKey))){e.preventDefault();redo();return;}
   if(e.ctrlKey&&k==="c"){$("#copy").click();return;}
-  ({b:"brush",e:"erase",g:"fill",l:"line",r:"rect",i:"pick"})[k]&&setTool({b:"brush",e:"erase",g:"fill",l:"line",r:"rect",i:"pick"}[k]);
+  ({b:"brush",e:"erase",g:"fill",l:"line",c:"circle",r:"rect",i:"pick"})[k]&&setTool({b:"brush",e:"erase",g:"fill",l:"line",c:"circle",r:"rect",i:"pick"}[k]);
 });
 
 /* drag & drop a saved file onto the page */
@@ -817,6 +851,30 @@ document.addEventListener("drop",e=>{
     catch(_){importCode(r.result);}}; r.readAsText(f);
 });
 
+/* ---------- resizable right panel ---------- */
+function initDragHandle(){
+  const handle=$("#dragHandle"), right=$("#right"), MIN=300, MAX=760;
+  const saved=parseInt(localStorage.getItem("sea_rightw")||"",10);
+  if(saved>=MIN&&saved<=MAX) right.style.width=saved+"px";
+  let dragging=false;
+  handle.addEventListener("pointerdown",e=>{
+    dragging=true; handle.classList.add("active");
+    try{handle.setPointerCapture(e.pointerId);}catch(_){}
+    e.preventDefault();
+  });
+  handle.addEventListener("pointermove",e=>{
+    if(!dragging)return;
+    const w=Math.max(MIN,Math.min(MAX,window.innerWidth-e.clientX));
+    right.style.width=w+"px";
+  });
+  const stop=()=>{
+    if(!dragging)return; dragging=false; handle.classList.remove("active");
+    localStorage.setItem("sea_rightw",parseInt(right.style.width,10));
+  };
+  handle.addEventListener("pointerup",stop);
+  handle.addEventListener("pointercancel",stop);
+}
+
 /* ---------- boot ---------- */
 (function init(){
   try{
@@ -827,14 +885,13 @@ document.addEventListener("drop",e=>{
   try{
     const g=JSON.parse(localStorage.getItem("sea_gap")||"null");
     if(g){gapMode=g.gapMode||"void"; gapEmo=g.gapEmo||null;
-      if(g.n)$("#voidN").value=Math.max(1.5,Math.min(3,parseFloat(g.n)||2.5));
-      if(g.ps)$("#prevSize").value=g.ps; if(g.pf)$("#prevFont").value=g.pf;}
+      if(g.n)$("#voidN").value=Math.max(1.5,Math.min(3,parseFloat(g.n)||2.5));}
   }catch(_){}
   if(!lib.length) lib=DEFAULTS.slice();
   $("#gw").value=W; $("#gh").value=H;
-  $("#prevSizeV").textContent=$("#prevSize").value;
   sel=lib[0]||null;
   renderPal(); renderRecent(); buildGrid(); syncGapUI(); syncHist();
+  initDragHandle();
 })();
 })();
 </script>
