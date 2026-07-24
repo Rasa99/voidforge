@@ -284,7 +284,7 @@
       </div>
       <div class="stat" id="gapHelp" style="margin-top:6px">
         One <b>⠀</b> is only ~⅓ of an emoticon wide, so the useful range is <b>1.5–3</b> voids
-        per cell. <b>Auto-fit</b> measures the exact ratio for Steam's default 26px emoticon size.
+        per cell. <b>Auto-fit</b> measures the exact ratio for a 16px emoticon, matching the preview.
         <b>Ruler</b> copies a test message — paste it in Steam and read the number off
         it if auto-fit is slightly out. The fractional value is spread across each row (2.5 →
         2,3,2,3…) so long rows don't drift.
@@ -338,7 +338,7 @@ const CDN=[
   n=>`https://steamcommunity-a.akamaihd.net/economy/emoticon/${n}`
 ];
 const DEFAULTS=["SNF3","SNF5","SNF2","SNF1","SNF4"];
-const PREV_SIZE=26, PREV_FONT=15;   // fixed Steam-preview render size (was a user control, removed — never did anything useful)
+const PREV_SIZE=16, PREV_FONT=11;   // fixed Steam-preview render size, matched to actual in-chat rendering
 
 /* ---------- state ---------- */
 let W=16,H=10, cells=new Array(W*H).fill(null);
@@ -554,10 +554,14 @@ function circleIdx(a,b){
   const x0=Math.min(a%W,b%W),x1=Math.max(a%W,b%W),y0=Math.min((a/W)|0,(b/W)|0),y1=Math.max((a/W)|0,(b/W)|0);
   const cx=(x0+x1)/2, cy=(y0+y1)/2;
   const rx=Math.max((x1-x0)/2,0.5), ry=Math.max((y1-y0)/2,0.5);
+  const irx=rx-1, iry=ry-1;   // hollow: outer ellipse minus a 1-cell-shrunk inner one
   const out=[];
   for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){
     const dx=(x-cx)/rx, dy=(y-cy)/ry;
-    if(dx*dx+dy*dy<=1.05) out.push(y*W+x);
+    if(dx*dx+dy*dy>1.05) continue;
+    if(irx<=0||iry<=0){ out.push(y*W+x); continue; }   // too small for a hole — keep it solid
+    const idx=(x-cx)/irx, idy=(y-cy)/iry;
+    if(idx*idx+idy*idy>1.0) out.push(y*W+x);
   }
   return out.length?out:[a];
 }
