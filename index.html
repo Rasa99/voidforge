@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>try{var t=localStorage.getItem("sea_theme"); if(t==="neon") document.documentElement.dataset.theme="neon";}catch(_){}</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VoidForge — Steam Emoticon Pixel Art Editor</title>
@@ -11,6 +12,9 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%BE%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#1b2838; --bg2:#171a21; --panel:#22303f; --panel2:#2a3f5a;
@@ -30,7 +34,9 @@
   }
   header h1{font-size:15px; margin:0; font-weight:600; letter-spacing:.4px; color:#fff}
   header h1 span{color:var(--acc)}
+  header .badge{display:none}
   header .hint{color:var(--dim); font-size:11.5px}
+  .bg-scan{display:none}
   main{flex:1 1 auto; display:flex; min-height:0}
 
   .col{display:flex; flex-direction:column; min-height:0}
@@ -89,9 +95,13 @@
   #recent .pal{width:26px; aspect-ratio:1/1}
 
   /* ---------- canvas ---------- */
-  #stageWrap{flex:1 1 auto; overflow:auto; padding:18px; display:flex;
+  #stageWrap{flex:1 1 auto; overflow:auto; padding:18px; display:flex; position:relative;
     align-items:flex-start; justify-content:center; background:
       radial-gradient(ellipse at 50% 0%, #24384f 0%, #16202b 70%);}
+  #refImg{
+    position:absolute; pointer-events:none; image-rendering:pixelated;
+    object-fit:fill; transform-origin:center center; z-index:1;
+  }
   #stage{
     display:grid; gap:0; background:#0f1620; padding:6px; border:1px solid #000;
     border-radius:4px; box-shadow:0 6px 24px #0008; touch-action:none; user-select:none;
@@ -158,31 +168,244 @@
   }
   #traceDrop.over{border-color:var(--acc); color:var(--acc)}
   #traceDrop img{max-width:100%; max-height:220px; image-rendering:pixelated}
+
+  /* ================= NeonUI theme — scoped, only active when html[data-theme="neon"] ================= */
+  html[data-theme="neon"]{
+    --bg:#05070d; --bg2:#03040a; --panel:rgba(13,18,32,.68); --panel2:rgba(22,30,52,.8);
+    --line:rgba(0,229,255,.16); --txt:#dff6ff; --dim:#7889a8;
+    --acc:#00f0ff; --acc2:#ff2ee6; --acc3:#7c4dff; --ok:#39ff9c; --warn:#ff3b6b;
+    --glow-acc:0 0 10px rgba(0,240,255,.55), 0 0 26px rgba(0,240,255,.22);
+    --glow-acc2:0 0 10px rgba(255,46,230,.5), 0 0 26px rgba(255,46,230,.2);
+  }
+  html[data-theme="neon"] body{background:#05070d; font-family:"Rajdhani","Segoe UI",Arial,sans-serif; position:relative}
+  html[data-theme="neon"] body::before{
+    content:""; position:fixed; inset:-40px; z-index:-2; pointer-events:none;
+    background-image:linear-gradient(rgba(0,240,255,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,.05) 1px, transparent 1px);
+    background-size:42px 42px; animation:neonGridDrift 26s linear infinite;
+  }
+  html[data-theme="neon"] body::after{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:radial-gradient(ellipse 760px 520px at 12% -8%, rgba(124,77,255,.20), transparent 60%),
+      radial-gradient(ellipse 760px 520px at 102% 108%, rgba(255,46,230,.15), transparent 60%),
+      radial-gradient(ellipse 900px 620px at 50% 45%, rgba(0,240,255,.07), transparent 70%);
+  }
+  @keyframes neonGridDrift{0%{background-position:0 0,0 0}100%{background-position:42px 42px,42px 42px}}
+  html[data-theme="neon"] .bg-scan{
+    display:block; position:fixed; inset:0; z-index:80; pointer-events:none; mix-blend-mode:overlay; opacity:.5;
+    background:repeating-linear-gradient(to bottom, rgba(255,255,255,.035) 0px, rgba(255,255,255,.035) 1px, transparent 2px, transparent 3px);
+  }
+  html[data-theme="neon"] header{
+    background:rgba(7,10,19,.78); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid rgba(0,240,255,.25); position:relative;
+  }
+  html[data-theme="neon"] header::after{
+    content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px;
+    background:linear-gradient(90deg,transparent,var(--acc),var(--acc3),var(--acc2),transparent);
+    background-size:200% 100%; animation:neonLaserSweep 6s linear infinite;
+  }
+  @keyframes neonLaserSweep{0%{background-position:0% 0}100%{background-position:200% 0}}
+  html[data-theme="neon"] header h1{
+    font-family:"Orbitron","Rajdhani",sans-serif; font-weight:800; letter-spacing:1.6px;
+    color:#eafcff; text-shadow:0 0 10px rgba(0,240,255,.55);
+  }
+  html[data-theme="neon"] header h1 span{
+    background:linear-gradient(90deg,var(--acc),var(--acc2)); -webkit-background-clip:text;
+    background-clip:text; color:transparent; filter:drop-shadow(0 0 6px rgba(255,46,230,.45));
+  }
+  html[data-theme="neon"] header .badge{
+    display:inline-block; font-family:"Orbitron",sans-serif; font-size:9.5px; font-weight:700;
+    letter-spacing:1.4px; color:#04141a; background:linear-gradient(90deg,var(--acc),var(--ok));
+    padding:4px 9px; border-radius:20px; box-shadow:var(--glow-acc);
+    animation:neonBadgePulse 2.4s ease-in-out infinite; white-space:nowrap;
+  }
+  @keyframes neonBadgePulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.28)}}
+  html[data-theme="neon"] #left{background:var(--panel); backdrop-filter:blur(10px); border-right:1px solid var(--line)}
+  html[data-theme="neon"] #right{background:var(--panel); backdrop-filter:blur(10px); border-left:1px solid var(--line)}
+  html[data-theme="neon"] #dragHandle{background:var(--line); transition:.15s}
+  html[data-theme="neon"] #dragHandle:hover, html[data-theme="neon"] #dragHandle.active{background:linear-gradient(var(--acc),var(--acc2)); box-shadow:var(--glow-acc)}
+  html[data-theme="neon"] .sec{border-bottom:1px solid var(--line)}
+  html[data-theme="neon"] .sec h2{
+    letter-spacing:1.6px; font-family:"Orbitron","Rajdhani",sans-serif; font-weight:700;
+    text-shadow:0 0 6px rgba(0,240,255,.35);
+  }
+  html[data-theme="neon"] button, html[data-theme="neon"] .btn{
+    background:rgba(20,28,46,.7); border:1px solid rgba(0,240,255,.28); border-radius:6px;
+    transition:.15s ease; backdrop-filter:blur(4px);
+  }
+  html[data-theme="neon"] button:hover{border-color:var(--acc); color:#fff; box-shadow:var(--glow-acc); transform:translateY(-1px)}
+  html[data-theme="neon"] button.on{background:linear-gradient(135deg,var(--acc),var(--acc3)); color:#031018; font-weight:700; border-color:var(--acc); box-shadow:var(--glow-acc)}
+  html[data-theme="neon"] button.p{background:linear-gradient(135deg,var(--acc2),var(--acc3)); color:#fff; border-color:var(--acc2); box-shadow:var(--glow-acc2)}
+  html[data-theme="neon"] button.p:hover{filter:brightness(1.18); box-shadow:0 0 16px rgba(255,46,230,.65), 0 0 36px rgba(255,46,230,.28)}
+  html[data-theme="neon"] button:disabled{opacity:.35; box-shadow:none; transform:none}
+  html[data-theme="neon"] input[type=text], html[data-theme="neon"] input[type=number],
+  html[data-theme="neon"] textarea, html[data-theme="neon"] select{
+    background:rgba(5,8,15,.85); border:1px solid rgba(0,240,255,.22); border-radius:6px;
+  }
+  html[data-theme="neon"] input:focus, html[data-theme="neon"] textarea:focus, html[data-theme="neon"] select:focus{
+    outline:none; border-color:var(--acc); box-shadow:0 0 0 1px var(--acc), 0 0 10px rgba(0,240,255,.4);
+  }
+  html[data-theme="neon"] .pal{
+    background:rgba(5,8,15,.85) center/70% no-repeat; border:1px solid rgba(0,240,255,.14);
+    border-radius:5px; transition:.12s;
+  }
+  html[data-theme="neon"] .pal:hover{border-color:var(--acc); box-shadow:0 0 8px rgba(0,240,255,.5)}
+  html[data-theme="neon"] .pal.sel{border-color:var(--acc2); box-shadow:0 0 0 1px var(--acc2), 0 0 14px rgba(255,46,230,.6)}
+  html[data-theme="neon"] .pal.txt{color:#8ff9c8}
+  html[data-theme="neon"] .pal.void{background:rgba(3,5,10,.9)}
+  html[data-theme="neon"] #stageWrap{background:radial-gradient(ellipse at 50% 0%, rgba(34,24,64,.45) 0%, rgba(4,6,12,.92) 70%)}
+  html[data-theme="neon"] #stage{
+    background:rgba(4,6,12,.95); border:1px solid rgba(0,240,255,.3); border-radius:6px;
+    box-shadow:0 0 0 1px rgba(0,240,255,.08), 0 10px 40px #000a, var(--glow-acc);
+  }
+  html[data-theme="neon"] .cell{outline:.5px solid rgba(0,240,255,.06)}
+  html[data-theme="neon"] .cell.empty{background-color:rgba(11,15,25,.95)}
+  html[data-theme="neon"] #stage.chk .cell.empty{background-color:rgba(10,13,21,.95)}
+  html[data-theme="neon"] #stage.chk .cell.empty.alt{background-color:rgba(15,19,31,.95)}
+  html[data-theme="neon"] .cell.tx{color:#8ff9ea}
+  html[data-theme="neon"] .cell.pv{box-shadow:inset 0 0 0 1px var(--acc), inset 0 0 10px rgba(0,240,255,.5)}
+  html[data-theme="neon"] #out{background:rgba(4,6,11,.92); color:#8fe9ff; border:1px solid rgba(0,240,255,.2); border-radius:6px}
+  html[data-theme="neon"] #preview{
+    background:rgba(4,6,11,.92); border:1px solid rgba(0,240,255,.2); border-radius:6px;
+    font-family:"Rajdhani","Segoe UI Symbol","Segoe UI",Arial,sans-serif;
+  }
+  html[data-theme="neon"] #preview .v{color:#4a5f85}
+  html[data-theme="neon"] #preview .miss{color:#8ff9ea}
+  html[data-theme="neon"] .warnmsg{text-shadow:0 0 6px rgba(255,59,107,.45)}
+  html[data-theme="neon"] ::-webkit-scrollbar-track{background:rgba(5,8,15,.8)}
+  html[data-theme="neon"] ::-webkit-scrollbar-thumb{background:linear-gradient(var(--acc),var(--acc3)); border-radius:5px}
+  html[data-theme="neon"] ::-webkit-scrollbar-thumb:hover{background:linear-gradient(var(--acc2),var(--acc3))}
+  html[data-theme="neon"] .kbd{background:rgba(0,240,255,.08); border:1px solid rgba(0,240,255,.35); border-radius:4px; color:var(--acc)}
+  html[data-theme="neon"] #toast{
+    background:rgba(7,10,19,.92); border:1px solid var(--acc); color:var(--acc); border-radius:6px;
+    box-shadow:var(--glow-acc); backdrop-filter:blur(8px);
+  }
+  html[data-theme="neon"] #traceModal{background:rgba(2,3,8,.78); backdrop-filter:blur(3px)}
+  html[data-theme="neon"] #traceBox{
+    background:rgba(12,16,29,.94); border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 0 44px rgba(0,240,255,.16), 0 20px 60px #000a; backdrop-filter:blur(16px);
+  }
+  html[data-theme="neon"] #traceBox h2{font-family:"Orbitron",sans-serif; text-shadow:0 0 8px rgba(0,240,255,.5)}
+  html[data-theme="neon"] #traceDrop{border:2px dashed rgba(0,240,255,.32); border-radius:8px}
+  html[data-theme="neon"] #traceDrop.over{border-color:var(--acc); color:var(--acc); box-shadow:0 0 20px rgba(0,240,255,.28) inset}
+  html[data-theme="neon"] footer a:hover{filter:brightness(1.2)}
+
+  /* ================= welcome theme picker ================= */
+  #themePicker{
+    position:fixed; inset:0; z-index:500; background:#0c1118;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:24px;
+  }
+  #themePicker[hidden]{display:none}
+  #themePicker h1{color:#fff; font-size:20px; margin:0; font-family:"Motiva Sans","Segoe UI",Arial,sans-serif}
+  #themePicker .sub{color:#8fa2b8; font-size:13px; margin-top:-10px}
+  #themePicker .cards{display:flex; gap:24px; flex-wrap:wrap; justify-content:center}
+  .tp-card{
+    width:280px; border-radius:10px; overflow:hidden; cursor:pointer; border:2px solid transparent;
+    transition:.15s; background:#11151f; text-align:left;
+  }
+  .tp-card:hover{transform:translateY(-3px); border-color:#66c0f4}
+  .tp-shot{padding:10px; display:flex; flex-direction:column; gap:6px; height:150px; box-sizing:border-box}
+  .tp-bar{height:14px; border-radius:3px; flex:0 0 auto}
+  .tp-body{display:flex; gap:5px; flex:1; min-height:0}
+  .tp-sw{width:32px; border-radius:3px; display:grid; grid-template-columns:repeat(2,1fr); gap:3px; padding:4px; align-content:start; flex:0 0 auto}
+  .tp-sw i{aspect-ratio:1; border-radius:2px}
+  .tp-grid{flex:1; display:grid; grid-template-columns:repeat(6,1fr); grid-template-rows:repeat(4,1fr); gap:2px; min-width:0}
+  .tp-cell{border-radius:1px}
+  .tp-btnrow{display:flex; gap:4px; flex:0 0 auto}
+  .tp-btn{flex:1; height:10px; border-radius:2px}
+  .tp-label{padding:12px 14px}
+  .tp-label b{display:block; font-size:15px; color:#fff; margin-bottom:3px}
+  .tp-label span{font-size:11.5px; color:#8fa2b8}
+  .tp-shot.tp-steam{background:linear-gradient(#1b2838,#171a21 60%)}
+  .tp-steam .tp-bar{background:#171a21}
+  .tp-steam .tp-sw{background:#22303f}
+  .tp-steam .tp-sw i{background:#3d5a7a}
+  .tp-steam .tp-cell{background:#151d28}
+  .tp-steam .tp-cell.f{background:#66c0f4}
+  .tp-steam .tp-btn{background:linear-gradient(#3d5a7a,#2a3f5a)}
+  .tp-shot.tp-neon{background:#05070d}
+  .tp-neon .tp-bar{background:rgba(7,10,19,.9); box-shadow:0 1px 0 rgba(0,240,255,.4)}
+  .tp-neon .tp-sw{background:rgba(5,8,15,.9); border:1px solid rgba(0,240,255,.3)}
+  .tp-neon .tp-sw i{background:rgba(0,240,255,.35); box-shadow:0 0 4px rgba(0,240,255,.5)}
+  .tp-neon .tp-cell{background:rgba(11,15,25,.95); border:1px solid rgba(0,240,255,.12)}
+  .tp-neon .tp-cell.f{background:#00f0ff; box-shadow:0 0 5px #00f0ff}
+  .tp-neon .tp-btn{background:rgba(20,28,46,.9); box-shadow:0 0 5px rgba(0,240,255,.4)}
+  #tpSwitch{
+    background:linear-gradient(#3d5a7a,#2a3f5a); color:#dbe7f0; border:1px solid #16202d;
+    border-radius:3px; padding:4px 9px; cursor:pointer; font:inherit; font-size:11px;
+  }
+  #tpSwitch:hover{background:linear-gradient(#4d7099,#33506f); color:#fff}
+  html[data-theme="neon"] #tpSwitch{
+    background:rgba(20,28,46,.7); color:#dff6ff; border:1px solid rgba(0,240,255,.28); border-radius:6px;
+  }
 </style>
 </head>
 <body>
+<div class="bg-scan" aria-hidden="true"></div>
 
 <header>
   <h1>Void<span>Forge</span></h1>
+  <span class="badge">⚡ AI PIXEL FORGE // 2030</span>
   <span class="hint">Steam emoticon pixel art — paint with your emoticons → copy the code → paste in chat, comments or profile.
     Gaps are filled with the void <span class="kbd">U+2800</span></span>
+  <span style="flex:1"></span>
+  <button id="tpSwitch">🎨 Switch look</button>
 </header>
+
+<div id="themePicker" hidden>
+  <h1>Pick your look</h1>
+  <div class="sub">Same tool either way — just a different skin. You can switch anytime with the button in the header.</div>
+  <div class="cards">
+    <div class="tp-card" data-choice="steam">
+      <div class="tp-shot tp-steam">
+        <div class="tp-bar"></div>
+        <div class="tp-btnrow"><div class="tp-btn"></div><div class="tp-btn"></div><div class="tp-btn"></div></div>
+        <div class="tp-body">
+          <div class="tp-sw"><i></i><i></i><i></i><i></i></div>
+          <div class="tp-grid">
+            <div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell"></div><div class="tp-cell f"></div>
+            <div class="tp-cell"></div><div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell"></div><div class="tp-cell f"></div><div class="tp-cell"></div>
+            <div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell f"></div><div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell"></div>
+            <div class="tp-cell"></div><div class="tp-cell"></div><div class="tp-cell"></div><div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell f"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tp-label"><b>SteamUI</b><span>Clean dark-blue look matching the Steam client</span></div>
+    </div>
+    <div class="tp-card" data-choice="neon">
+      <div class="tp-shot tp-neon">
+        <div class="tp-bar"></div>
+        <div class="tp-btnrow"><div class="tp-btn"></div><div class="tp-btn"></div><div class="tp-btn"></div></div>
+        <div class="tp-body">
+          <div class="tp-sw"><i></i><i></i><i></i><i></i></div>
+          <div class="tp-grid">
+            <div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell"></div><div class="tp-cell f"></div>
+            <div class="tp-cell"></div><div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell"></div><div class="tp-cell f"></div><div class="tp-cell"></div>
+            <div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell f"></div><div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell"></div>
+            <div class="tp-cell"></div><div class="tp-cell"></div><div class="tp-cell"></div><div class="tp-cell f"></div><div class="tp-cell"></div><div class="tp-cell f"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tp-label"><b>NeonUI</b><span>Cyberpunk neon glow with animated effects</span></div>
+    </div>
+  </div>
+</div>
 
 <main>
   <!-- ================= LEFT ================= -->
   <div id="left" class="col">
     <div class="sec">
-      <h2>1 · Your emoticons</h2>
+      <h2><span class="h2lbl" data-neon="01 // Emoticon Uplink">1 · Your emoticons</span></h2>
       <div class="row">
         <input type="text" id="profIn" placeholder="Steam profile or inventory link…" style="flex:1 1 auto">
         <button id="openInv" class="sm" title="Opens their emoticon inventory as JSON in a new tab">Open ↗</button>
       </div>
       <textarea id="libIn" rows="3" style="margin-top:6px" placeholder="Paste the inventory JSON here — I keep only the emoticons. Or just paste :steamhappy: :luv: tokens."></textarea>
       <div class="row" style="margin-top:6px">
-        <button class="p" id="libLoad">Load</button>
-        <button id="libAdd">Add to list</button>
-        <button id="libDefault" class="sm">Defaults</button>
-        <button id="libClear" class="sm">Clear</button>
+        <button class="p" id="libLoad" data-neon="⏎ Load">Load</button>
+        <button id="libAdd" data-neon="＋ Add to list">Add to list</button>
+        <button id="libDefault" class="sm" data-neon="★ Defaults">Defaults</button>
+        <button id="libClear" class="sm" data-neon="✕ Clear">Clear</button>
       </div>
       <details open>
         <summary>Get emoticons from a profile link</summary>
@@ -199,12 +422,12 @@
     </div>
 
     <div class="sec">
-      <h2>Recent</h2>
+      <h2><span class="h2lbl" data-neon="Recent Buffer">Recent</span></h2>
       <div id="recent"></div>
     </div>
 
     <div class="sec grow">
-      <h2>Palette <span class="stat" id="palCount"></span></h2>
+      <h2><span class="h2lbl" data-neon="Neural Palette">Palette</span> <span class="stat" id="palCount"></span></h2>
       <input type="text" id="palFilter" placeholder="filter…">
       <div id="palWrap"></div>
     </div>
@@ -215,13 +438,13 @@
     <div class="sec">
       <div class="row">
         <label class="sm">Tool</label>
-        <button data-tool="brush" class="tool on">Brush <span class="kbd">B</span></button>
-        <button data-tool="erase" class="tool">Void <span class="kbd">E</span></button>
-        <button data-tool="fill"  class="tool">Fill <span class="kbd">G</span></button>
-        <button data-tool="line"  class="tool">Line <span class="kbd">L</span></button>
-        <button data-tool="circle" class="tool">Circle <span class="kbd">C</span></button>
-        <button data-tool="rect"  class="tool">Rect <span class="kbd">R</span></button>
-        <button data-tool="pick"  class="tool">Pick <span class="kbd">I</span></button>
+        <button data-tool="brush" class="tool on"><span class="h2lbl" data-neon="🖌 Brush">Brush</span> <span class="kbd">B</span></button>
+        <button data-tool="erase" class="tool"><span class="h2lbl" data-neon="⬛ Void">Void</span> <span class="kbd">E</span></button>
+        <button data-tool="fill"  class="tool"><span class="h2lbl" data-neon="🪣 Fill">Fill</span> <span class="kbd">G</span></button>
+        <button data-tool="line"  class="tool"><span class="h2lbl" data-neon="／ Line">Line</span> <span class="kbd">L</span></button>
+        <button data-tool="circle" class="tool"><span class="h2lbl" data-neon="◯ Circle">Circle</span> <span class="kbd">C</span></button>
+        <button data-tool="rect"  class="tool"><span class="h2lbl" data-neon="▭ Rect">Rect</span> <span class="kbd">R</span></button>
+        <button data-tool="pick"  class="tool"><span class="h2lbl" data-neon="🎯 Pick">Pick</span> <span class="kbd">I</span></button>
         <span style="flex:1"></span>
         <button id="undo">↶ Undo</button>
         <button id="redo">↷ Redo</button>
@@ -248,13 +471,28 @@
         <button class="sm" data-shift="1,0">→</button>
         <button class="sm" id="crop">Crop to art</button>
         <span style="flex:1"></span>
-        <button class="sm p" id="traceBtn">Trace image</button>
-        <button class="sm" id="importArt">Import code</button>
-        <button class="sm" id="saveFile">Save</button>
-        <button class="sm" id="openFile">Open</button>
+        <button class="sm p" id="traceBtn" data-neon="✨ AI Trace">Trace image</button>
+        <button class="sm" id="importArt" data-neon="📥 Import code">Import code</button>
+        <button class="sm" id="saveFile" data-neon="💾 Save">Save</button>
+        <button class="sm" id="openFile" data-neon="📂 Open">Open</button>
+      </div>
+      <div class="row" id="refPanel" hidden>
+        <label class="sm">Reference</label>
+        <label class="sm">opacity</label>
+        <input type="range" id="refOpacity" min="0.1" max="1" step="0.05" value="0.45" style="width:70px">
+        <label class="sm">scale</label>
+        <input type="range" id="refScale" min="0.2" max="3" step="0.05" value="1" style="width:70px">
+        <label class="sm">rotate</label>
+        <input type="range" id="refRotate" min="-180" max="180" step="1" value="0" style="width:70px">
+        <button class="sm" data-refnudge="-1,0">←</button>
+        <button class="sm" data-refnudge="1,0">→</button>
+        <button class="sm" data-refnudge="0,-1">↑</button>
+        <button class="sm" data-refnudge="0,1">↓</button>
+        <button class="sm" id="refReset">Reset</button>
+        <button class="sm" id="refRemove">Remove</button>
       </div>
     </div>
-    <div id="stageWrap"><div id="stage" class="chk"></div></div>
+    <div id="stageWrap"><div id="stage" class="chk"></div><img id="refImg" hidden></div>
     <div class="sec" style="border-bottom:none">
       <span class="stat">Left-drag paints · right-drag erases to void ·
         <span class="kbd">Alt</span>+click picks the emoticon under the cursor ·
@@ -268,9 +506,9 @@
   <!-- ================= RIGHT ================= -->
   <div id="right" class="col">
     <div class="sec">
-      <h2>2 · Output</h2>
+      <h2><span class="h2lbl" data-neon="02 // Output Stream">2 · Output</span></h2>
       <div class="row">
-        <button class="p" id="copy" style="flex:1 1 auto">Copy code</button>
+        <button class="p" id="copy" style="flex:1 1 auto" data-neon="⚡ Copy Code">Copy code</button>
         <button id="dlTxt" class="sm">.txt</button>
       </div>
       <div class="row">
@@ -281,7 +519,7 @@
     </div>
 
     <div class="sec" id="gapSec">
-      <h2>3 · Gap width <span class="stat">— this is what makes it line up</span></h2>
+      <h2><span class="h2lbl" data-neon="03 // Gap Calibration">3 · Gap width</span> <span class="stat">— this is what makes it line up</span></h2>
       <div class="row">
         <label class="sm">Fill gaps with</label>
         <select id="gapMode">
@@ -293,8 +531,8 @@
         <label class="sm">voids per cell</label>
         <input type="range" id="voidR" min="1.5" max="3" step="0.05" value="2.5" style="flex:1 1 70px;width:auto">
         <input type="number" id="voidN" min="1.5" max="3" step="0.05" value="2.5">
-        <button id="autofit" class="p sm">Auto-fit</button>
-        <button id="calib" class="sm">Ruler…</button>
+        <button id="autofit" class="p sm" data-neon="✨ Auto-fit">Auto-fit</button>
+        <button id="calib" class="sm" data-neon="📐 Ruler…">Ruler…</button>
       </div>
       <div class="row" id="emoRow" hidden>
         <label class="sm">gap emoticon</label>
@@ -320,7 +558,7 @@
     </div>
 
     <div class="sec">
-      <h2>Notes</h2>
+      <h2><span class="h2lbl" data-neon="System Log">Notes</span></h2>
       <div class="stat">
         • Steam does <b>not</b> render a square grid: emoticons are ~26–32 px wide while a void is
         ~9 px. The gap width above is what converts your grid into something Steam draws straight.<br>
@@ -354,9 +592,10 @@
       <button class="sm" id="traceClose">✕</button>
     </div>
     <p class="stat" style="margin:8px 0">
-      Picks the closest-colored emoticon from your loaded palette for every cell. Uses your
-      <b>current grid size</b> (set it in the Size fields before tracing) and your <b>currently
-      loaded palette</b> — the more emoticons you have loaded, the more color variety it can use.
+      Two ways to use a picture: <b>Auto-trace</b> replaces every cell with the closest-colored
+      emoticon in your loaded palette (uses your current grid size — set it before tracing).
+      <b>Reference overlay</b> just lays the picture semi-transparently behind the grid so you can
+      trace it by eye, with position/scale/rotate controls — no color matching, so it always works.
     </p>
     <div id="traceDrop">
       <span id="traceDropLabel">Drop an image here, or click to choose one</span>
@@ -367,7 +606,8 @@
       <label class="sm"><input type="checkbox" id="traceVoid" checked> treat transparent areas as void (PNGs only)</label>
     </div>
     <div class="row" style="margin-top:10px">
-      <button class="p" id="traceGo" style="flex:1 1 auto" disabled>Generate</button>
+      <button class="p" id="traceGo" style="flex:1 1 auto" disabled>Auto-trace</button>
+      <button id="refGo" style="flex:1 1 auto" disabled>Use as reference</button>
     </div>
     <div class="stat" id="traceStatus" style="margin-top:8px"></div>
   </div>
@@ -708,7 +948,7 @@ function renderPreview(code){
   p.style.fontSize=font+"px";
   code.split("\n").forEach(line=>{
     const row=document.createElement("div");
-    row.className="pr"; row.style.lineHeight=size+2+"px";
+    row.className="pr"; row.style.lineHeight=size+"px";   // equal gap all around — flush like the horizontal emote spacing
     line.split(/(:[A-Za-z0-9_]+:)/).forEach(part=>{
       if(!part) return;
       const t=/^:([A-Za-z0-9_]+):$/.exec(part);
@@ -924,11 +1164,17 @@ const emoColorCache=new Map();   // name -> {r,g,b} | null (unreadable — CORS 
 function avgColor(name){
   if(emoColorCache.has(name)) return Promise.resolve(emoColorCache.get(name));
   return new Promise(resolve=>{
-    const finish=v=>{emoColorCache.set(name,v); resolve(v);};
+    let done=false, timer;
+    // Bounded: a hung network request (ad-blocker silently dropping it, a dead mirror that never
+    // fires load/error) must not stall the whole trace forever with zero feedback.
+    const finish=v=>{ if(done)return; done=true; clearTimeout(timer); emoColorCache.set(name,v); resolve(v); };
+    timer=setTimeout(()=>finish(null),5000);
     const tryUrl=i=>{
+      if(done)return;
       if(i>=CDN.length){finish(null);return;}
       const img=new Image(); img.crossOrigin="anonymous";
       img.onload=()=>{
+        if(done)return;
         try{
           const c=document.createElement("canvas"); c.width=c.height=12;
           const ctx=c.getContext("2d"); ctx.drawImage(img,0,0,12,12);
@@ -952,10 +1198,53 @@ function traceSetImg(src){
     $("#tracePreview").src=src; $("#tracePreview").hidden=false;
     $("#traceDropLabel").hidden=true;
     $("#traceGo").disabled=false;
+    $("#refGo").disabled=false;
   };
   traceImg.onerror=()=>toast("Couldn't read that image");
   traceImg.src=src;
 }
+
+/* ---------- reference-image overlay (trace by eye — no color matching, always works) ---------- */
+let refState={x:0,y:0};
+function refApply(){
+  const img=$("#refImg");
+  img.style.opacity=$("#refOpacity").value;
+  img.style.transform=`translate(-50%,-50%) translate(${refState.x}px,${refState.y}px) `+
+    `scale(${$("#refScale").value}) rotate(${$("#refRotate").value}deg)`;
+}
+function refShow(src){
+  const stage=$("#stage"), wrap=$("#stageWrap"), img=$("#refImg");
+  const sb=stage.getBoundingClientRect(), wb=wrap.getBoundingClientRect();
+  img.src=src;
+  img.style.left=(sb.left-wb.left+wrap.scrollLeft+sb.width/2)+"px";
+  img.style.top=(sb.top-wb.top+wrap.scrollTop+sb.height/2)+"px";
+  img.style.width=sb.width+"px";
+  img.style.height=sb.height+"px";
+  img.hidden=false;
+  $("#refPanel").hidden=false;
+  refState={x:0,y:0};
+  $("#refOpacity").value=0.45; $("#refScale").value=1; $("#refRotate").value=0;
+  refApply();
+}
+function refRemove(){
+  $("#refImg").hidden=true; $("#refImg").removeAttribute("src");
+  $("#refPanel").hidden=true; refState={x:0,y:0};
+}
+$("#refOpacity").oninput=refApply;
+$("#refScale").oninput=refApply;
+$("#refRotate").oninput=refApply;
+$("#refReset").onclick=()=>{refState={x:0,y:0}; $("#refOpacity").value=0.45; $("#refScale").value=1; $("#refRotate").value=0; refApply();};
+$("#refRemove").onclick=refRemove;
+$$("[data-refnudge]").forEach(b=>b.onclick=()=>{
+  const[dx,dy]=b.dataset.refnudge.split(",").map(Number);
+  refState.x+=dx*10; refState.y+=dy*10; refApply();
+});
+$("#refGo").onclick=()=>{
+  if(!traceImg){toast("Choose an image first");return;}
+  refShow(traceImg.src);
+  closeTrace();
+  toast("Reference added — adjust it below the canvas, painting works normally on top");
+};
 function openTrace(){$("#traceModal").hidden=false;}
 function closeTrace(){$("#traceModal").hidden=true;}
 
@@ -964,35 +1253,42 @@ async function runTrace(){
   if(!traceImg){toast("Choose an image first");return;}
   const go=$("#traceGo"), status=$("#traceStatus");
   go.disabled=true; status.textContent="Reading palette colors…";
-  const swatches=[];
-  for(const name of lib){ const c=await avgColor(name); if(c) swatches.push({name,...c}); }
-  if(!swatches.length){
-    status.textContent="";
-    toast("Couldn't read any emoticon colors — your browser may be blocking cross-site images");
-    go.disabled=false; return;
-  }
-  status.textContent=`Tracing with ${swatches.length}/${lib.length} usable colors…`;
-  const useVoid=$("#traceVoid").checked;
-  const c=document.createElement("canvas"); c.width=W; c.height=H;
-  const ctx=c.getContext("2d");
-  ctx.drawImage(traceImg,0,0,W,H);
-  const d=ctx.getImageData(0,0,W,H).data;
-  snap();
-  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
-    const p=(y*W+x)*4, r=d[p],g=d[p+1],b=d[p+2],a=d[p+3];
-    if(useVoid&&a<40){ cells[y*W+x]=null; continue; }
-    let best=null,bd=Infinity;
-    for(const s of swatches){
-      const dr=r-s.r,dg=g-s.g,db=b-s.b, dist=dr*dr+dg*dg+db*db;
-      if(dist<bd){bd=dist;best=s.name;}
+  try{
+    // Parallel + each individually time-boxed (see avgColor) — total wait can't exceed ~5s
+    // no matter how large the palette is, instead of silently hanging forever.
+    const results=await Promise.all(lib.map(name=>avgColor(name).then(c=>c?{name,...c}:null)));
+    const swatches=results.filter(Boolean);
+    if(!swatches.length){
+      toast("Couldn't read any emoticon colors — your browser or an extension may be blocking cross-site images");
+      return;
     }
-    cells[y*W+x]=best;
+    status.textContent=`Tracing with ${swatches.length}/${lib.length} usable colors…`;
+    const useVoid=$("#traceVoid").checked;
+    const c=document.createElement("canvas"); c.width=W; c.height=H;
+    const ctx=c.getContext("2d");
+    ctx.drawImage(traceImg,0,0,W,H);
+    const d=ctx.getImageData(0,0,W,H).data;
+    snap();
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+      const p=(y*W+x)*4, r=d[p],g=d[p+1],b=d[p+2],a=d[p+3];
+      if(useVoid&&a<40){ cells[y*W+x]=null; continue; }
+      let best=null,bd=Infinity;
+      for(const s of swatches){
+        const dr=r-s.r,dg=g-s.g,db=b-s.b, dist=dr*dr+dg*dg+db*db;
+        if(dist<bd){bd=dist;best=s.name;}
+      }
+      cells[y*W+x]=best;
+    }
+    redrawAll(); update();
+    closeTrace();
+    toast(`Traced ${W}×${H} using ${swatches.length} emoticons`);
+  }catch(err){
+    // Any unexpected failure (huge image, odd format, tainted canvas) surfaces here instead of
+    // leaving the button stuck disabled with no feedback, which is what "just doesn't work" was.
+    toast("Tracing failed: "+(err&&err.message?err.message:"unknown error"));
+  }finally{
+    status.textContent=""; go.disabled=false;
   }
-  redrawAll(); update();
-  status.textContent="";
-  closeTrace();
-  toast(`Traced ${W}×${H} using ${swatches.length} emoticons`);
-  go.disabled=false;
 }
 
 $("#traceBtn").onclick=openTrace;
@@ -1036,6 +1332,26 @@ function initDragHandle(){
   handle.addEventListener("pointercancel",stop);
 }
 
+/* ---------- theme (SteamUI / NeonUI) ---------- */
+function applyThemeLabels(theme){
+  document.querySelectorAll("[data-neon]").forEach(el=>{
+    if(el.dataset.steam===undefined) el.dataset.steam=el.textContent;
+    el.textContent = theme==="neon" ? el.dataset.neon : el.dataset.steam;
+  });
+}
+function setTheme(theme){
+  document.documentElement.dataset.theme = theme==="neon" ? "neon" : "steam";
+  localStorage.setItem("sea_theme",theme);
+  applyThemeLabels(theme);
+}
+function openThemePicker(){$("#themePicker").hidden=false;}
+function closeThemePicker(){$("#themePicker").hidden=true;}
+$$(".tp-card").forEach(card=>card.onclick=()=>{
+  setTheme(card.dataset.choice);
+  closeThemePicker();
+});
+$("#tpSwitch").onclick=openThemePicker;
+
 /* ---------- boot ---------- */
 (function init(){
   try{
@@ -1053,6 +1369,9 @@ function initDragHandle(){
   sel=lib[0]||null;
   renderPal(); renderRecent(); buildGrid(); syncGapUI(); syncHist();
   initDragHandle();
+  const savedTheme=localStorage.getItem("sea_theme");
+  if(savedTheme) applyThemeLabels(savedTheme);
+  else openThemePicker();   // first visit — let them choose, defaults to SteamUI until they do
 })();
 })();
 </script>
