@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VoidForge — Steam Emoticon Pixel Art Editor</title>
+<meta name="description" content="Paint pixel art with your Steam emoticons and copy pasteable code straight into chat, comments, or your profile. Free, runs entirely in your browser, no signup.">
+<meta name="theme-color" content="#1b2838">
+<meta property="og:title" content="VoidForge — Steam Emoticon Pixel Art Editor">
+<meta property="og:description" content="Paint pixel art with your Steam emoticons and copy pasteable code straight into chat, comments, or your profile.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%91%BE%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#1b2838; --bg2:#171a21; --panel:#22303f; --panel2:#2a3f5a;
+    --line:#3a4a5e; --txt:#c7d5e0; --dim:#8f98a0; --acc:#66c0f4; --acc2:#4c8fc0;
+    --ok:#5ba32b; --warn:#c94f4f;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:linear-gradient(#1b2838,#171a21 60%); color:var(--txt);
+    font:13px/1.45 "Motiva Sans","Segoe UI",Arial,sans-serif;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  header{
+    display:flex; align-items:center; gap:14px; padding:8px 14px;
+    background:var(--bg2); border-bottom:1px solid #000; flex:0 0 auto;
+  }
+  header h1{font-size:15px; margin:0; font-weight:600; letter-spacing:.4px; color:#fff}
+  header h1 span{color:var(--acc)}
+  header .hint{color:var(--dim); font-size:11.5px}
+  main{flex:1 1 auto; display:flex; min-height:0}
+
+  .col{display:flex; flex-direction:column; min-height:0}
+  #left{width:290px; flex:0 0 auto; background:var(--panel); border-right:1px solid #000}
+  #right{width:380px; flex:0 0 auto; background:var(--panel); border-left:1px solid #000}
+  #center{flex:1 1 auto; min-width:0}
+
+  .sec{border-bottom:1px solid var(--line); padding:9px 10px}
+  .sec.grow{flex:1 1 auto; min-height:0; display:flex; flex-direction:column}
+  .sec h2{
+    margin:0 0 7px; font-size:10.5px; text-transform:uppercase; letter-spacing:1.2px;
+    color:var(--acc); font-weight:600;
+  }
+  .row{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+  .row+.row{margin-top:6px}
+  label.sm{color:var(--dim); font-size:11px}
+
+  button, .btn{
+    background:linear-gradient(#3d5a7a,#2a3f5a); color:#dbe7f0; border:1px solid #16202d;
+    border-radius:3px; padding:5px 9px; cursor:pointer; font:inherit; font-size:12px;
+    transition:.12s;
+  }
+  button:hover{background:linear-gradient(#4d7099,#33506f); color:#fff}
+  button:active{transform:translateY(1px)}
+  button.on{background:linear-gradient(#66c0f4,#417a9b); color:#0d1117; font-weight:600}
+  button.p{background:linear-gradient(#7bb838,#4c751d); color:#fff; border-color:#2b4310}
+  button.p:hover{background:linear-gradient(#8fd047,#5c8a25)}
+  button.sm{padding:3px 7px; font-size:11px}
+  button:disabled{opacity:.4; cursor:default}
+
+  input[type=text], input[type=number], textarea, select{
+    background:#101822; color:var(--txt); border:1px solid #000; border-radius:3px;
+    padding:5px 7px; font:inherit;
+  }
+  input[type=number]{width:58px}
+  textarea{width:100%; resize:vertical; font-family:Consolas,monospace; font-size:12px}
+  input[type=range]{accent-color:var(--acc); width:100%}
+  input:focus,textarea:focus,select:focus{outline:1px solid var(--acc); border-color:var(--acc)}
+
+  /* ---------- palette ---------- */
+  #palWrap{flex:1 1 auto; overflow:auto; margin-top:6px;
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(38px,1fr)); gap:3px; align-content:start}
+  .pal{
+    position:relative; aspect-ratio:1/1; background:#101822 center/70% no-repeat;
+    border:1px solid #0a0f16; border-radius:3px; cursor:pointer; display:flex;
+    align-items:center; justify-content:center; overflow:hidden;
+  }
+  .pal:hover{border-color:var(--acc)}
+  .pal.sel{border-color:var(--acc); box-shadow:0 0 0 1px var(--acc), 0 0 8px #66c0f477}
+  .pal.txt{font-size:8px; word-break:break-all; text-align:center; color:#8fa; padding:1px; line-height:1.05}
+  .pal.void{background:#0d1117; color:var(--dim); font-size:16px}
+  .pal.void::after{content:"⠀"}
+  #recent{display:flex; gap:3px; flex-wrap:wrap; min-height:26px}
+  #recent .pal{width:26px; aspect-ratio:1/1}
+
+  /* ---------- canvas ---------- */
+  #stageWrap{flex:1 1 auto; overflow:auto; padding:18px; display:flex;
+    align-items:flex-start; justify-content:center; background:
+      radial-gradient(ellipse at 50% 0%, #24384f 0%, #16202b 70%);}
+  #stage{
+    display:grid; gap:0; background:#0f1620; padding:6px; border:1px solid #000;
+    border-radius:4px; box-shadow:0 6px 24px #0008; touch-action:none; user-select:none;
+  }
+  .cell{
+    background:center/86% no-repeat; position:relative; cursor:crosshair;
+    outline:.5px solid #ffffff08;
+  }
+  .cell.empty{background-color:#151d28}
+  #stage.chk .cell.empty{background-color:#141c26;}
+  #stage.chk .cell.empty.alt{background-color:#18212c;}
+  .cell.tx{font-size:7px; color:#9fe; overflow:hidden; text-align:center; line-height:1;
+    display:flex; align-items:center; justify-content:center; word-break:break-all}
+  .cell.pv{box-shadow:inset 0 0 0 1px var(--acc)}
+  #stage.nogrid .cell{outline:none}
+
+  /* ---------- output ---------- */
+  #out{
+    flex:1 1 auto; width:100%; min-height:120px; background:#0d1117; white-space:pre;
+    overflow:auto; font-family:Consolas,monospace; font-size:11.5px; color:#a9c6dd;
+    border:1px solid #000; border-radius:3px; padding:8px;
+  }
+  #preview{
+    flex:1 1 auto; overflow:auto; background:#0d1117; border:1px solid #000;
+    border-radius:3px; padding:8px;
+    font-family:"Motiva Sans","Segoe UI Symbol","Segoe UI",Arial,sans-serif;
+  }
+  #preview .pr{white-space:pre; overflow:visible}
+  #preview img{vertical-align:middle}
+  #preview .v{color:#2a3f5a; vertical-align:middle}
+  #preview .miss{font-size:9px; color:#9fe; vertical-align:middle}
+  .stat{color:var(--dim); font-size:11px}
+  .stat b{color:var(--txt); font-weight:600}
+  .warnmsg{color:var(--warn)}
+  .tabs{display:flex; gap:4px; margin-bottom:6px}
+  .tabs button{flex:1 1 auto}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:#101822}
+  ::-webkit-scrollbar-thumb{background:#3a4a5e; border-radius:5px}
+  ::-webkit-scrollbar-thumb:hover{background:#4f6784}
+  .kbd{background:#101822; border:1px solid #000; border-radius:3px; padding:0 4px; font-size:10.5px; color:var(--dim)}
+  #toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+    background:#0d1117; border:1px solid var(--acc); color:var(--acc); padding:8px 16px;
+    border-radius:4px; opacity:0; pointer-events:none; transition:.25s; z-index:99;
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  details summary{cursor:pointer; color:var(--dim); font-size:11px; margin-top:4px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Void<span>Forge</span></h1>
+  <span class="hint">Steam emoticon pixel art — paint with your emoticons → copy the code → paste in chat, comments or profile.
+    Gaps are filled with the void <span class="kbd">U+2800</span></span>
+</header>
+
+<main>
+  <!-- ================= LEFT ================= -->
+  <div id="left" class="col">
+    <div class="sec">
+      <h2>1 · Your emoticons</h2>
+      <div class="row">
+        <input type="text" id="profIn" placeholder="Steam profile or inventory link…" style="flex:1 1 auto">
+        <button id="openInv" class="sm" title="Opens their emoticon inventory as JSON in a new tab">Open ↗</button>
+      </div>
+      <textarea id="libIn" rows="3" style="margin-top:6px" placeholder="Paste the inventory JSON here — I keep only the emoticons. Or just paste :steamhappy: :luv: tokens."></textarea>
+      <div class="row" style="margin-top:6px">
+        <button class="p" id="libLoad">Load</button>
+        <button id="libAdd">Add to list</button>
+        <button id="libDefault" class="sm">Defaults</button>
+        <button id="libClear" class="sm">Clear</button>
+      </div>
+      <details open>
+        <summary>Get emoticons from a profile link</summary>
+        <div class="stat" style="margin-top:5px">
+          A local page can't read Steam directly (browser security), so it's a quick copy — their
+          inventory must be <b>public</b>:
+          <br>1 · paste the profile link above, hit <b>Open ↗</b>.
+          <br>2 · a page of text opens — select all (<span class="kbd">Ctrl+A</span>), copy.
+          <br>3 · paste it into the big box, hit <b>Load</b>. Cards, backgrounds etc. are dropped automatically.
+          <br><br>Your own list is easiest from the Steam chat emoticon picker, or
+          <b>steamcommunity.com/my/inventory/#753_6</b>.
+        </div>
+      </details>
+    </div>
+
+    <div class="sec">
+      <h2>Recent</h2>
+      <div id="recent"></div>
+    </div>
+
+    <div class="sec grow">
+      <h2>Palette <span class="stat" id="palCount"></span></h2>
+      <input type="text" id="palFilter" placeholder="filter…">
+      <div id="palWrap"></div>
+    </div>
+  </div>
+
+  <!-- ================= CENTER ================= -->
+  <div id="center" class="col">
+    <div class="sec">
+      <div class="row">
+        <label class="sm">Tool</label>
+        <button data-tool="brush" class="tool on">Brush <span class="kbd">B</span></button>
+        <button data-tool="erase" class="tool">Void <span class="kbd">E</span></button>
+        <button data-tool="fill"  class="tool">Fill <span class="kbd">G</span></button>
+        <button data-tool="line"  class="tool">Line <span class="kbd">L</span></button>
+        <button data-tool="rect"  class="tool">Rect <span class="kbd">R</span></button>
+        <button data-tool="pick"  class="tool">Pick <span class="kbd">I</span></button>
+        <span style="flex:1"></span>
+        <button id="undo">↶ Undo</button>
+        <button id="redo">↷ Redo</button>
+      </div>
+      <div class="row">
+        <label class="sm">Size</label>
+        <input type="number" id="gw" min="1" max="60" value="16"> ×
+        <input type="number" id="gh" min="1" max="60" value="10">
+        <button id="applySize" class="sm">Resize</button>
+        <span style="width:8px"></span>
+        <label class="sm">Zoom</label>
+        <input type="range" id="zoom" min="10" max="48" value="26" style="width:90px">
+        <span style="flex:1"></span>
+        <button id="gridToggle" class="sm on">Grid</button>
+        <button id="clearAll" class="sm">Clear</button>
+      </div>
+      <div class="row">
+        <label class="sm">Transform</label>
+        <button class="sm" id="mirH">Mirror H</button>
+        <button class="sm" id="mirV">Mirror V</button>
+        <button class="sm" data-shift="0,-1">↑</button>
+        <button class="sm" data-shift="0,1">↓</button>
+        <button class="sm" data-shift="-1,0">←</button>
+        <button class="sm" data-shift="1,0">→</button>
+        <button class="sm" id="crop">Crop to art</button>
+        <span style="flex:1"></span>
+        <button class="sm" id="importArt">Import code</button>
+        <button class="sm" id="saveFile">Save</button>
+        <button class="sm" id="openFile">Open</button>
+      </div>
+    </div>
+    <div id="stageWrap"><div id="stage" class="chk"></div></div>
+    <div class="sec" style="border-bottom:none">
+      <span class="stat">Left-drag paints · right-drag erases to void ·
+        <span class="kbd">Alt</span>+click picks the emoticon under the cursor ·
+        <span class="kbd">Ctrl+Z</span> undo · <span class="kbd">Ctrl+Y</span> redo ·
+        <span class="kbd">Ctrl+C</span> copies the code</span>
+    </div>
+  </div>
+
+  <!-- ================= RIGHT ================= -->
+  <div id="right" class="col">
+    <div class="sec">
+      <h2>2 · Output</h2>
+      <div class="row">
+        <button class="p" id="copy" style="flex:1 1 auto">Copy code</button>
+        <button id="dlTxt" class="sm">.txt</button>
+      </div>
+      <div class="row">
+        <label class="sm"><input type="checkbox" id="trimRight" checked> trim trailing gap</label>
+        <label class="sm"><input type="checkbox" id="padEmpty" checked> keep empty rows</label>
+      </div>
+      <div class="row"><span class="stat" id="stats"></span></div>
+    </div>
+
+    <div class="sec" id="gapSec">
+      <h2>3 · Gap width <span class="stat">— this is what makes it line up</span></h2>
+      <div class="row">
+        <label class="sm">Fill gaps with</label>
+        <select id="gapMode">
+          <option value="void">The void ⠀ (U+2800)</option>
+          <option value="emo">A blank emoticon</option>
+        </select>
+      </div>
+      <div class="row" id="voidRow">
+        <label class="sm">voids per cell</label>
+        <input type="range" id="voidR" min="1.5" max="3" step="0.05" value="2.5" style="flex:1 1 70px;width:auto">
+        <input type="number" id="voidN" min="1.5" max="3" step="0.05" value="2.5">
+        <button id="autofit" class="p sm">Auto-fit</button>
+        <button id="calib" class="sm">Ruler…</button>
+      </div>
+      <div class="row" id="emoRow" hidden>
+        <label class="sm">gap emoticon</label>
+        <span class="stat" id="gapEmoName">— none —</span>
+        <button id="setGapEmo" class="sm">Use selected</button>
+      </div>
+      <div class="stat" id="gapHelp" style="margin-top:6px">
+        One <b>⠀</b> is only ~⅓ of an emoticon wide, so the useful range is <b>1.5–3</b> voids
+        per cell. <b>Auto-fit</b> measures the exact ratio for the emoticon size set below the
+        preview. <b>Ruler</b> copies a test message — paste it in Steam and read the number off
+        it if auto-fit is slightly out. The fractional value is spread across each row (2.5 →
+        2,3,2,3…) so long rows don't drift.
+      </div>
+    </div>
+
+    <div class="sec grow">
+      <div class="tabs">
+        <button id="tabCode">Code</button>
+        <button id="tabPrev" class="on">Steam preview</button>
+      </div>
+      <div class="row" id="prevCtl" style="margin-bottom:6px">
+        <label class="sm">emoticon px</label>
+        <input type="range" id="prevSize" min="14" max="40" value="26" style="flex:1 1 auto;width:auto">
+        <span class="stat" id="prevSizeV">26</span>
+        <label class="sm">font px</label>
+        <input type="number" id="prevFont" min="9" max="24" value="15">
+      </div>
+      <div id="out" hidden></div>
+      <div id="preview"></div>
+    </div>
+
+    <div class="sec">
+      <h2>Notes</h2>
+      <div class="stat">
+        • Steam does <b>not</b> render a square grid: emoticons are ~26–32 px wide while a void is
+        ~9 px. The gap width above is what converts your grid into something Steam draws straight.<br>
+        • Pixel-perfect alignment is only guaranteed with a <b>blank emoticon</b> as the gap, since
+        an emoticon is by definition exactly one emoticon wide.<br>
+        • Steam chat accepts ~<b>1000</b> characters per message; profile comments allow more.<br>
+        • Emoticons you don't own still show as text to <i>you</i>, but render for anyone who
+        sees the message, so borrowed codes work fine.
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer style="flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; padding:6px 10px; font-size:10.5px; color:var(--dim); background:var(--bg2); border-top:1px solid #000">
+  <span>VoidForge is free and public domain (<a href="LICENSE" style="color:var(--acc)">Unlicense</a>) — no account, no tracking, no data leaves your browser.</span>
+  <a href="https://buymeacoffee.com/rasben" target="_blank" rel="noopener"
+     style="display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:12px;
+       background:#2a3f5a; color:#ffdd88; text-decoration:none; font-size:10.5px; white-space:nowrap;
+       border:1px solid #3a4a5e;">
+    ☕ Buy me a coffee
+  </a>
+</footer>
+
+<div id="toast"></div>
+<input type="file" id="fileIn" accept=".json,.txt" hidden>
+
+<script>
+(()=>{
+"use strict";
+const VOID="⠀";
+const CDN=[
+  n=>`https://community.cloudflare.steamstatic.com/economy/emoticon/large/${n}`,
+  n=>`https://community.cloudflare.steamstatic.com/economy/emoticon/${n}`,
+  n=>`https://steamcommunity-a.akamaihd.net/economy/emoticon/${n}`
+];
+const DEFAULTS=("steamhappy steamsad steammocking steamfacepalm steamsalty steambored steamthumbsup "+
+ "steamthumbsdown steamsalient steamdeadpan steamthis steampeeking steamhappysign steamboxed "+
+ "luv health physgun sacrifice bomb gunsmiley spycon medicon heavycon scoutcon p2cube p2turret "+
+ "csgostar csgoct csgot csgoa csgohelmet cozyspaceengineerscat").split(/\s+/);
+
+/* ---------- state ---------- */
+let W=16,H=10, cells=new Array(W*H).fill(null);
+let lib=[], sel=null, tool="brush", zoom=26, showGrid=true, recent=[];
+let gapMode="void", gapEmo=null;
+let undoStack=[], redoStack=[];
+const urlCache=new Map();   // name -> url | "" (broken)
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const stage=$("#stage");
+
+/* ---------- emoticon image resolution ---------- */
+function resolve(name,cb){
+  if(urlCache.has(name)){cb(urlCache.get(name));return;}
+  let i=0;
+  const tryNext=()=>{
+    if(i>=CDN.length){urlCache.set(name,"");cb("");return;}
+    const url=CDN[i++](name), im=new Image();
+    im.onload=()=>{urlCache.set(name,url);cb(url);};
+    im.onerror=tryNext;
+    im.src=url;
+  };
+  tryNext();
+}
+
+/* ---------- library ---------- */
+function parseTokens(txt){
+  const out=[], seen=new Set();
+  const push=n=>{n=n.trim().replace(/^:|:$/g,""); if(/^[A-Za-z0-9_]{1,60}$/.test(n)&&!seen.has(n)){seen.add(n);out.push(n);}};
+  const m=txt.match(/:[A-Za-z0-9_]{1,60}:/g);
+  if(m&&m.length) m.forEach(push);
+  else txt.split(/[\s,;]+/).forEach(push);
+  return out;
+}
+/* Pull emoticon names out of a pasted Steam inventory (app 753 / context 6) JSON.
+   Handles both the modern endpoint ({descriptions:[…]}) and the legacy one
+   ({rgDescriptions:{…}}). Keeps only items tagged/typed as Emoticon, so cards,
+   backgrounds, booster packs etc. are ignored. Returns null if txt isn't JSON. */
+function fromInventoryJSON(txt){
+  let data; try{data=JSON.parse(txt.trim());}catch(_){return null;}
+  let arr=null;
+  if(Array.isArray(data)) arr=data;
+  else if(Array.isArray(data.descriptions)) arr=data.descriptions;
+  else if(data.descriptions&&typeof data.descriptions==="object") arr=Object.values(data.descriptions);
+  else if(data.rgDescriptions&&typeof data.rgDescriptions==="object") arr=Object.values(data.rgDescriptions);
+  if(!arr) return null;
+  const isEmo=d=>/emoticon/i.test(d.type||"")||
+    (d.tags||[]).some(t=>/emoticon/i.test(t.name||t.localized_tag_name||t.internal_name||""));
+  const grab=d=>{
+    // Prefer an explicit :token: anywhere, then fall back to a bare-word name.
+    for(const f of [d.market_hash_name,d.market_name,d.name]){
+      const m=(f||"").match(/:([A-Za-z0-9_]{1,60}):/); if(m) return m[1];
+    }
+    for(const dd of (d.descriptions||[])){const m=(dd.value||"").match(/:([A-Za-z0-9_]{1,60}):/); if(m) return m[1];}
+    for(const f of [d.market_hash_name,d.market_name,d.name])
+      if(f&&/^[A-Za-z0-9_]{1,60}$/.test(f)) return f;
+    return null;
+  };
+  const seen=new Set(), out=[];
+  arr.forEach(d=>{if(!isEmo(d))return; const n=grab(d);
+    if(n&&!seen.has(n)){seen.add(n);out.push(n);}});
+  return out;
+}
+function smartParse(txt){
+  const inv=fromInventoryJSON(txt);
+  return inv!==null ? {list:inv,json:true} : {list:parseTokens(txt),json:false};
+}
+function buildInvURL(u){
+  u=(u||"").trim();
+  let m=u.match(/steamcommunity\.com\/profiles\/(\d{17})/i);
+  if(m) return `https://steamcommunity.com/inventory/${m[1]}/753/6?l=english&count=5000`;
+  m=u.match(/steamcommunity\.com\/id\/([^\/\s?#]+)/i);
+  if(m) return `https://steamcommunity.com/id/${m[1]}/inventory/json/753/6?l=english`;
+  if(/^\d{17}$/.test(u)) return `https://steamcommunity.com/inventory/${u}/753/6?l=english&count=5000`;
+  if(/^[A-Za-z0-9_.-]{2,64}$/.test(u)) return `https://steamcommunity.com/id/${u}/inventory/json/753/6?l=english`;
+  return null;
+}
+function setLib(list,append){
+  const seen=new Set(append?lib:[]);
+  const merged=append?lib.slice():[];
+  list.forEach(n=>{if(!seen.has(n)){seen.add(n);merged.push(n);}});
+  lib=merged; localStorage.setItem("sea_lib",JSON.stringify(lib)); renderPal();
+  if(!sel&&lib.length) selectEmo(lib[0]);
+}
+function renderPal(){
+  const f=$("#palFilter").value.trim().toLowerCase();
+  const wrap=$("#palWrap"); wrap.innerHTML="";
+  $("#palCount").textContent=lib.length?`(${lib.length})`:"";
+  const v=document.createElement("div");
+  v.className="pal void"+(sel===null?" sel":""); v.title="The void (empty cell) — U+2800";
+  v.onclick=()=>selectEmo(null); wrap.appendChild(v);
+  lib.filter(n=>!f||n.toLowerCase().includes(f)).forEach(n=>wrap.appendChild(palCell(n)));
+  if(!lib.length){
+    const d=document.createElement("div");
+    d.style.cssText="grid-column:1/-1;color:#8f98a0;font-size:11.5px;padding:6px 2px";
+    d.textContent="No emoticons loaded — paste your list above and hit Load, or click Defaults.";
+    wrap.appendChild(d);
+  }
+}
+function palCell(n){
+  const d=document.createElement("div");
+  d.className="pal"+(sel===n?" sel":""); d.title=":"+n+":";
+  d.onclick=()=>selectEmo(n);
+  paintNode(d,n);
+  return d;
+}
+function paintNode(node,n){
+  if(n===null){node.style.backgroundImage="";node.textContent="";return;}
+  const cached=urlCache.get(n);
+  const apply=u=>{
+    if(u){node.style.backgroundImage=`url("${u}")`;node.textContent="";node.classList.remove("txt","tx");}
+    else{node.style.backgroundImage="";node.textContent=n;node.classList.add(node.classList.contains("cell")?"tx":"txt");}
+  };
+  if(cached!==undefined) apply(cached); else {node.textContent="…";resolve(n,apply);}
+}
+function selectEmo(n){
+  sel=n; renderPal();
+  if(n!==null){recent=[n,...recent.filter(x=>x!==n)].slice(0,12); renderRecent();}
+  if(tool==="erase"&&n!==null) setTool("brush");
+}
+function renderRecent(){
+  const r=$("#recent"); r.innerHTML="";
+  recent.forEach(n=>{const d=palCell(n); r.appendChild(d);});
+}
+
+/* ---------- grid ---------- */
+function buildGrid(){
+  stage.style.gridTemplateColumns=`repeat(${W},${zoom}px)`;
+  stage.style.gridAutoRows=zoom+"px";
+  stage.innerHTML="";
+  const frag=document.createDocumentFragment();
+  for(let i=0;i<W*H;i++){
+    const d=document.createElement("div");
+    d.className="cell"; d.dataset.i=i;
+    frag.appendChild(d);
+  }
+  stage.appendChild(frag);
+  stage.classList.toggle("nogrid",!showGrid);
+  for(let i=0;i<W*H;i++) drawCell(i);
+}
+function drawCell(i){
+  const d=stage.children[i]; if(!d) return;
+  const n=cells[i];
+  d.className="cell"+(n===null?" empty"+(((i%W)+Math.floor(i/W))%2?" alt":""):"");
+  d.style.fontSize=Math.max(6,zoom/3.4)+"px";
+  paintNode(d,n);
+}
+function redrawAll(){for(let i=0;i<W*H;i++) drawCell(i);}
+
+function resize(nw,nh,keep=true){
+  nw=Math.max(1,Math.min(60,nw|0)); nh=Math.max(1,Math.min(60,nh|0));
+  const nc=new Array(nw*nh).fill(null);
+  if(keep) for(let y=0;y<Math.min(H,nh);y++) for(let x=0;x<Math.min(W,nw);x++) nc[y*nw+x]=cells[y*W+x];
+  W=nw;H=nh;cells=nc; $("#gw").value=W; $("#gh").value=H;
+  buildGrid(); update();
+}
+
+/* ---------- history ---------- */
+function snap(){undoStack.push(cells.slice()); if(undoStack.length>120)undoStack.shift(); redoStack.length=0; syncHist();}
+function syncHist(){$("#undo").disabled=!undoStack.length; $("#redo").disabled=!redoStack.length;}
+function undo(){if(!undoStack.length)return; redoStack.push(cells.slice()); cells=undoStack.pop(); redrawAll(); update(); syncHist();}
+function redo(){if(!redoStack.length)return; undoStack.push(cells.slice()); cells=redoStack.pop(); redrawAll(); update(); syncHist();}
+
+/* ---------- painting ---------- */
+let painting=false, startIdx=null, preview=new Map(), pointerErase=false;
+function idxAt(x,y){
+  const el=document.elementFromPoint(x,y);
+  if(el&&el.classList.contains("cell")) return +el.dataset.i;
+  return null;
+}
+function value(erase){return erase?null:sel;}
+function put(i,v){if(i<0||i>=W*H)return; if(cells[i]===v)return; cells[i]=v; drawCell(i);}
+
+function clearPreview(){preview.forEach((v,i)=>{drawCell(i);}); preview.clear();}
+function setPreview(list,v){
+  clearPreview();
+  list.forEach(i=>{if(i<0||i>=W*H)return; preview.set(i,cells[i]);
+    const d=stage.children[i]; d.className="cell pv"+(v===null?" empty":""); paintNode(d,v);});
+}
+function commitPreview(v){const l=[...preview.keys()]; preview.clear(); l.forEach(i=>put(i,v)); }
+
+function lineIdx(a,b){
+  let x0=a%W,y0=(a/W)|0,x1=b%W,y1=(b/W)|0, out=[];
+  const dx=Math.abs(x1-x0), dy=-Math.abs(y1-y0), sx=x0<x1?1:-1, sy=y0<y1?1:-1;
+  let err=dx+dy;
+  for(;;){ out.push(y0*W+x0); if(x0===x1&&y0===y1)break;
+    const e2=2*err; if(e2>=dy){err+=dy;x0+=sx;} if(e2<=dx){err+=dx;y0+=sy;} }
+  return out;
+}
+function rectIdx(a,b){
+  const x0=Math.min(a%W,b%W),x1=Math.max(a%W,b%W),y0=Math.min((a/W)|0,(b/W)|0),y1=Math.max((a/W)|0,(b/W)|0);
+  const out=[]; for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) out.push(y*W+x); return out;
+}
+function flood(i,v){
+  const t=cells[i]; if(t===v)return;
+  const st=[i], seen=new Set([i]);
+  while(st.length){
+    const c=st.pop(); put(c,v);
+    const x=c%W,y=(c/W)|0;
+    [[x-1,y],[x+1,y],[x,y-1],[x,y+1]].forEach(([nx,ny])=>{
+      if(nx<0||ny<0||nx>=W||ny>=H)return; const n=ny*W+nx;
+      if(!seen.has(n)&&cells[n]===t){seen.add(n);st.push(n);}
+    });
+  }
+}
+
+stage.addEventListener("contextmenu",e=>e.preventDefault());
+stage.addEventListener("pointerdown",e=>{
+  const i=idxAt(e.clientX,e.clientY); if(i===null)return;
+  e.preventDefault();
+  if(tool==="pick"||(e.altKey&&e.button===0)){selectEmo(cells[i]); return;}
+  pointerErase = e.button===2 || tool==="erase";
+  snap();
+  if(tool==="fill"){flood(i,value(pointerErase)); update(); return;}
+  if(tool==="line"||tool==="rect"){startIdx=i; painting=true; setPreview([i],value(pointerErase)); return;}
+  painting=true; put(i,value(pointerErase)); update();
+});
+window.addEventListener("pointermove",e=>{
+  if(!painting)return;
+  const i=idxAt(e.clientX,e.clientY); if(i===null)return;
+  if(tool==="line") setPreview(lineIdx(startIdx,i),value(pointerErase));
+  else if(tool==="rect") setPreview(rectIdx(startIdx,i),value(pointerErase));
+  else {put(i,value(pointerErase)); update();}
+});
+window.addEventListener("pointerup",()=>{
+  if(!painting)return; painting=false;
+  if(tool==="line"||tool==="rect"){commitPreview(value(pointerErase)); update();}
+  startIdx=null;
+});
+
+/* ---------- output ---------- */
+function gapEmoActive(){return gapMode==="emo"&&gapEmo;}
+function voidN(){return Math.max(1.5,Math.min(3,parseFloat($("#voidN").value)||2.5));}
+function buildCode(){
+  const trim=$("#trimRight").checked, keepEmpty=$("#padEmpty").checked;
+  const emo=gapEmoActive(), N=voidN(), lines=[];
+  for(let y=0;y<H;y++){
+    let last=W-1;
+    if(trim) while(last>=0&&cells[y*W+last]===null) last--;
+    let s="", acc=0, emitted=0;
+    for(let x=0;x<=last;x++){
+      const n=cells[y*W+x];
+      if(n!==null){s+=":"+n+":"; continue;}
+      if(emo){s+=":"+gapEmo+":"; continue;}
+      acc+=N;                                   // fractional gap width, drift-free per row
+      const k=Math.max(1,Math.round(acc-emitted));
+      s+=VOID.repeat(k); emitted+=k;
+    }
+    if(!s&&keepEmpty) s=emo?":"+gapEmo+":":VOID;
+    lines.push(s);
+  }
+  const blank=l=>{
+    let t=l; if(emo) t=t.split(":"+gapEmo+":").join("");
+    return !t.replace(/⠀/g,"").length;
+  };
+  while(lines.length&&blank(lines[lines.length-1])) lines.pop();
+  return (keepEmpty?lines:lines.filter(l=>l.length)).join("\n");
+}
+function update(){
+  const code=buildCode();
+  $("#out").textContent=code;
+  const emos=(code.match(/:[A-Za-z0-9_]+:/g)||[]).length;
+  const over=code.length>1000;
+  $("#stats").innerHTML=`<b>${code.length}</b> chars · <b>${emos}</b> emoticons · `+
+    `<b>${code?code.split("\n").length:0}</b> lines · gap <b>`+
+    (gapEmoActive()?":"+gapEmo+":":voidN()+"×⠀")+`</b>`+
+    (over?` · <span class="warnmsg">over ~1000, chat may reject it</span>`:"");
+  if(!$("#preview").hidden) renderPreview(code);
+  localStorage.setItem("sea_art",JSON.stringify({W,H,cells}));
+  syncHist();
+}
+/* Preview renders the way Steam does: emoticons as images at their real pixel size,
+   voids as actual text in a text-sized font — so misalignment shows up here first. */
+function renderPreview(code){
+  const p=$("#preview"); p.innerHTML="";
+  const size=+$("#prevSize").value, font=+$("#prevFont").value;
+  p.style.fontSize=font+"px";
+  code.split("\n").forEach(line=>{
+    const row=document.createElement("div");
+    row.className="pr"; row.style.lineHeight=size+2+"px";
+    line.split(/(:[A-Za-z0-9_]+:)/).forEach(part=>{
+      if(!part) return;
+      const t=/^:([A-Za-z0-9_]+):$/.exec(part);
+      if(!t){const s=document.createElement("span"); s.className="v"; s.textContent=part; row.appendChild(s); return;}
+      const n=t[1], im=document.createElement("img");
+      im.alt=part; im.title=part; im.width=size; im.height=size;
+      const swap=u=>{
+        if(u){im.src=u; return;}
+        const s=document.createElement("span"); s.className="miss"; s.textContent=part;
+        im.replaceWith(s);
+      };
+      const u=urlCache.get(n); if(u!==undefined) swap(u); else resolve(n,swap);
+      row.appendChild(im);
+    });
+    if(!line) row.innerHTML="&nbsp;";
+    p.appendChild(row);
+  });
+}
+
+/* ---------- transforms ---------- */
+function mirrorH(){snap(); for(let y=0;y<H;y++) for(let x=0;x<W>>1;x++){
+  const a=y*W+x,b=y*W+(W-1-x); [cells[a],cells[b]]=[cells[b],cells[a]];} redrawAll(); update();}
+function mirrorV(){snap(); for(let y=0;y<H>>1;y++) for(let x=0;x<W;x++){
+  const a=y*W+x,b=(H-1-y)*W+x; [cells[a],cells[b]]=[cells[b],cells[a]];} redrawAll(); update();}
+function shift(dx,dy){snap(); const nc=new Array(W*H).fill(null);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const nx=x+dx,ny=y+dy;
+    if(nx>=0&&ny>=0&&nx<W&&ny<H) nc[ny*W+nx]=cells[y*W+x];}
+  cells=nc; redrawAll(); update();}
+function cropToArt(){
+  let minx=W,miny=H,maxx=-1,maxy=-1;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++) if(cells[y*W+x]!==null){
+    minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y);}
+  if(maxx<0){toast("Nothing to crop");return;}
+  snap();
+  const nw=maxx-minx+1,nh=maxy-miny+1,nc=new Array(nw*nh).fill(null);
+  for(let y=0;y<nh;y++)for(let x=0;x<nw;x++) nc[y*nw+x]=cells[(y+miny)*W+(x+minx)];
+  W=nw;H=nh;cells=nc;$("#gw").value=W;$("#gh").value=H;buildGrid();update();
+}
+
+/* ---------- import art from code ---------- */
+function importCode(txt){
+  const N=voidN();
+  const rows=txt.replace(/\r/g,"").split("\n").map(line=>{
+    const out=[]; const re=/:([A-Za-z0-9_]+):|(⠀+)|( +)/g; let m;
+    while((m=re.exec(line))){
+      if(m[1]) out.push(m[1]===gapEmo?null:m[1]);
+      else{                                   // a run of voids/spaces = round(len/N) cells
+        const len=(m[2]||m[3]).length, k=Math.max(1,Math.round(len/(m[2]?N:1)));
+        for(let i=0;i<k;i++) out.push(null);
+      }
+    }
+    return out;
+  });
+  const nw=Math.max(1,...rows.map(r=>r.length)), nh=Math.max(1,rows.length);
+  if(nw>60||nh>60){toast("That art is larger than 60×60");return;}
+  snap();
+  W=nw;H=nh;cells=new Array(W*H).fill(null);
+  rows.forEach((r,y)=>r.forEach((v,x)=>{cells[y*W+x]=v;}));
+  const found=[...new Set(rows.flat().filter(Boolean))];
+  setLib(found,true);
+  $("#gw").value=W;$("#gh").value=H;buildGrid();update();
+  toast("Imported "+nw+"×"+nh);
+}
+
+/* ---------- ui wiring ---------- */
+function setTool(t){tool=t; $$(".tool").forEach(b=>b.classList.toggle("on",b.dataset.tool===t));}
+$$(".tool").forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+$("#undo").onclick=undo; $("#redo").onclick=redo;
+$("#applySize").onclick=()=>{snap();resize(+$("#gw").value,+$("#gh").value);};
+$("#gw").onchange=$("#gh").onchange=()=>{snap();resize(+$("#gw").value,+$("#gh").value);};
+$("#zoom").oninput=e=>{zoom=+e.target.value; stage.style.gridTemplateColumns=`repeat(${W},${zoom}px)`;
+  stage.style.gridAutoRows=zoom+"px"; [...stage.children].forEach(c=>c.style.fontSize=Math.max(6,zoom/3.4)+"px");};
+$("#gridToggle").onclick=e=>{showGrid=!showGrid; e.target.classList.toggle("on",showGrid); stage.classList.toggle("nogrid",!showGrid);};
+$("#clearAll").onclick=()=>{snap(); cells.fill(null); redrawAll(); update();};
+$("#mirH").onclick=mirrorH; $("#mirV").onclick=mirrorV; $("#crop").onclick=cropToArt;
+$$("[data-shift]").forEach(b=>b.onclick=()=>{const[a,c]=b.dataset.shift.split(",").map(Number); shift(a,c);});
+$("#palFilter").oninput=renderPal;
+$("#libLoad").onclick=()=>{const{list,json}=smartParse($("#libIn").value);
+  if(!list.length){toast(json?"No emoticons in that JSON — inventory private or empty?":"No :tokens: found");return;}
+  setLib(list,false); toast((json?"Imported ":"Loaded ")+list.length+" emoticon"+(list.length>1?"s":""));};
+$("#libAdd").onclick=()=>{const{list,json}=smartParse($("#libIn").value);
+  if(!list.length){toast(json?"No emoticons found in that JSON":"No :tokens: found");return;}
+  setLib(list,true); toast("Added "+list.length);};
+$("#openInv").onclick=()=>{const url=buildInvURL($("#profIn").value);
+  if(!url){toast("Paste a valid Steam profile link");return;}
+  window.open(url,"_blank","noopener"); toast("Opened — Ctrl+A, copy, paste it back here");};
+$("#profIn").onkeydown=e=>{if(e.key==="Enter")$("#openInv").click();};
+$("#libDefault").onclick=()=>{setLib(DEFAULTS,true); toast("Common emoticons added");};
+$("#libClear").onclick=()=>{lib=[];sel=null;localStorage.removeItem("sea_lib");renderPal();};
+$("#trimRight").onchange=$("#padEmpty").onchange=update;
+$("#tabCode").onclick=()=>{$("#out").hidden=false;$("#preview").hidden=true;$("#prevCtl").hidden=true;
+  $("#tabCode").classList.add("on");$("#tabPrev").classList.remove("on");};
+$("#tabPrev").onclick=()=>{$("#out").hidden=true;$("#preview").hidden=false;$("#prevCtl").hidden=false;
+  $("#tabPrev").classList.add("on");$("#tabCode").classList.remove("on");renderPreview(buildCode());};
+
+/* ---- gap width ---- */
+function saveGap(){localStorage.setItem("sea_gap",JSON.stringify(
+  {gapMode,gapEmo,n:$("#voidN").value,ps:$("#prevSize").value,pf:$("#prevFont").value}));}
+function syncGapUI(){
+  $("#gapMode").value=gapMode;
+  $("#voidRow").hidden=gapMode!=="void";
+  $("#emoRow").hidden=gapMode!=="emo";
+  $("#gapEmoName").textContent=gapEmo?":"+gapEmo+":":"— none, pick one in the palette then press Use selected —";
+  $("#voidR").value=Math.min(3,Math.max(1.5,parseFloat($("#voidN").value)||2.5));
+  saveGap(); update();
+}
+$("#gapMode").onchange=e=>{gapMode=e.target.value; syncGapUI();};
+$("#voidN").oninput=()=>syncGapUI();
+$("#voidR").oninput=e=>{$("#voidN").value=e.target.value; syncGapUI();};
+$("#setGapEmo").onclick=()=>{
+  if(sel===null){toast("Select an emoticon in the palette first");return;}
+  gapEmo=sel; syncGapUI(); toast("Gap emoticon = :"+sel+":");
+};
+$("#prevSize").oninput=e=>{$("#prevSizeV").textContent=e.target.value; saveGap(); renderPreview(buildCode());};
+$("#prevFont").oninput=()=>{saveGap(); renderPreview(buildCode());};
+/* Measure a void vs an emoticon in the live preview font and set voids/cell to match.
+   Steam's client is Chromium with the same Segoe/Motiva stack, so this transfers well. */
+$("#autofit").onclick=()=>{
+  const e=sel||gapEmo||lib[0];
+  if(!e){toast("Load some emoticons first");return;}
+  const px=+$("#prevSize").value, font=+$("#prevFont").value;
+  const m=document.createElement("span");
+  m.style.cssText=`position:absolute;visibility:hidden;white-space:pre;font-size:${font}px;`+
+    `font-family:"Motiva Sans","Segoe UI Symbol","Segoe UI",Arial,sans-serif`;
+  m.textContent=VOID.repeat(100); document.body.appendChild(m);
+  const voidW=m.getBoundingClientRect().width/100; m.remove();
+  const n=Math.max(1.5,Math.min(3,Math.round((px/voidW)*20)/20));  // emoticon px ÷ void px, 0.05 steps, clamped
+  gapMode="void"; $("#voidN").value=n; syncGapUI();
+  toast(`Auto-fit: ${n} voids ≈ one ${px}px emoticon`);
+};
+$("#calib").onclick=()=>{
+  const e=sel||gapEmo||lib[0];
+  if(!e){toast("Load some emoticons first");return;}
+  const t=":"+e+":", ruler=t.repeat(10);
+  let out=["RULER — the top row is 10 emoticons. Below, find the line whose LAST emoticon",
+           "sits exactly under the last emoticon of the top row. That number is your setting.",ruler];
+  for(let k=1;k<=8;k++) out.push(t+VOID.repeat(k*8)+t+"  = "+k);
+  const txt=out.join("\n");
+  navigator.clipboard.writeText(txt).then(()=>toast("Ruler copied — paste it in a Steam chat"),
+    ()=>{$("#out").textContent=txt;toast("Copy failed — ruler shown in the Code tab");});
+};
+$("#copy").onclick=async()=>{
+  const t=buildCode();
+  try{await navigator.clipboard.writeText(t);}catch(e){
+    const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); ta.remove();
+  }
+  toast("Copied — paste it in Steam");
+};
+$("#dlTxt").onclick=()=>dl(buildCode(),"steam-art.txt","text/plain");
+$("#saveFile").onclick=()=>dl(JSON.stringify({W,H,cells,lib}),"steam-art.json","application/json");
+$("#openFile").onclick=()=>{$("#fileIn").dataset.mode="json";$("#fileIn").click();};
+$("#importArt").onclick=()=>{
+  const t=prompt("Paste emoticon art code to load it back into the grid:");
+  if(t) importCode(t);
+};
+$("#fileIn").onchange=e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{const d=JSON.parse(r.result); snap(); W=d.W;H=d.H;cells=d.cells;
+      if(d.lib&&d.lib.length) setLib(d.lib,true);
+      $("#gw").value=W;$("#gh").value=H;buildGrid();update();toast("Opened");}
+    catch(err){importCode(r.result);}
+  };
+  r.readAsText(f); e.target.value="";
+};
+function dl(text,name,type){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([text],{type:type+";charset=utf-8"}));
+  a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+let toastT;
+function toast(m){const t=$("#toast"); t.textContent=m; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1800);}
+
+document.addEventListener("keydown",e=>{
+  if(/input|textarea/i.test(e.target.tagName))return;
+  const k=e.key.toLowerCase();
+  if(e.ctrlKey&&k==="z"){e.preventDefault();undo();return;}
+  if(e.ctrlKey&&(k==="y"||(k==="z"&&e.shiftKey))){e.preventDefault();redo();return;}
+  if(e.ctrlKey&&k==="c"){$("#copy").click();return;}
+  ({b:"brush",e:"erase",g:"fill",l:"line",r:"rect",i:"pick"})[k]&&setTool({b:"brush",e:"erase",g:"fill",l:"line",r:"rect",i:"pick"}[k]);
+});
+
+/* drag & drop a saved file onto the page */
+document.addEventListener("dragover",e=>e.preventDefault());
+document.addEventListener("drop",e=>{
+  e.preventDefault(); const f=e.dataTransfer.files[0]; if(!f)return;
+  const r=new FileReader(); r.onload=()=>{try{const d=JSON.parse(r.result);W=d.W;H=d.H;cells=d.cells;
+    if(d.lib)setLib(d.lib,true);$("#gw").value=W;$("#gh").value=H;buildGrid();update();}
+    catch(_){importCode(r.result);}}; r.readAsText(f);
+});
+
+/* ---------- boot ---------- */
+(function init(){
+  try{
+    const sl=JSON.parse(localStorage.getItem("sea_lib")||"[]"); if(sl.length) lib=sl;
+    const sa=JSON.parse(localStorage.getItem("sea_art")||"null");
+    if(sa&&sa.cells&&sa.cells.length===sa.W*sa.H){W=sa.W;H=sa.H;cells=sa.cells;}
+  }catch(_){}
+  try{
+    const g=JSON.parse(localStorage.getItem("sea_gap")||"null");
+    if(g){gapMode=g.gapMode||"void"; gapEmo=g.gapEmo||null;
+      if(g.n)$("#voidN").value=Math.max(1.5,Math.min(3,parseFloat(g.n)||2.5));
+      if(g.ps)$("#prevSize").value=g.ps; if(g.pf)$("#prevFont").value=g.pf;}
+  }catch(_){}
+  if(!lib.length) lib=DEFAULTS.slice();
+  $("#gw").value=W; $("#gh").value=H;
+  $("#prevSizeV").textContent=$("#prevSize").value;
+  sel=lib[0]||null;
+  renderPal(); renderRecent(); buildGrid(); syncGapUI(); syncHist();
+})();
+})();
+</script>
+</body>
+</html>
